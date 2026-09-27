@@ -1,0 +1,23 @@
+suite: datastores
+templates: [datastores.yaml]
+release: {name: app}
+tests:
+  - it: passes args to standalone postgres and tpl-renders datastore values
+    set:
+      datastores.db:
+        engine: postgres
+        type: standalone
+        existingSecret: '{{ .Release.Name }}-creds'
+        image: {repository: example/pg-cron, tag: "18"}
+        args: [postgres, -c, shared_preload_libraries=pg_cron]
+    documentIndex: 1
+    asserts:
+      - equal: {path: 'spec.template.spec.containers[0].args', value: [postgres, -c, shared_preload_libraries=pg_cron]}
+      - equal: {path: 'spec.template.spec.containers[0].image', value: example/pg-cron:18}
+      - equal: {path: 'spec.template.spec.containers[0].env[1].valueFrom.secretKeyRef.name', value: app-creds}
+  - it: keeps postgres argless by default
+    set:
+      datastores.db: {engine: postgres, type: standalone, existingSecret: s}
+    documentIndex: 1
+    asserts:
+      - notExists: {path: 'spec.template.spec.containers[0].args'}

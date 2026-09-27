@@ -15,7 +15,7 @@
 
 {{/* A workload's `name`, else its resourceName. Usage: (list $ key) */}}
 {{- define "at.workloadName" -}}
-{{- (get ((index . 0).Values.workloads) (index . 1) | default dict).name | default (include "at.resourceName" .) -}}
+{{- with (get ((index . 0).Values.workloads) (index . 1) | default dict).name }}{{ tpl . (index $ 0) }}{{ else }}{{ include "at.resourceName" $ }}{{ end -}}
 {{- end }}
 
 {{/* A service's `name`; else, keyed like its workload, the workload's name; else <workload>-<key>. Usage: (list $ workload service) */}}
@@ -23,7 +23,7 @@
 {{- $ctx := index . 0 -}}
 {{- $wl := include "at.workloadName" (list $ctx (index . 1)) -}}
 {{- $svc := get ((get $ctx.Values.workloads (index . 1) | default dict).services | default dict) (index . 2) | default dict -}}
-{{- if $svc.name }}{{ $svc.name }}
+{{- if $svc.name }}{{ tpl $svc.name $ctx }}
 {{- else if eq (index . 1) (index . 2) }}{{ $wl }}
 {{- else }}{{ printf "%s-%s" $wl (index . 2) | trunc 63 | trimSuffix "-" }}{{ end -}}
 {{- end }}
@@ -66,7 +66,7 @@ metadata:
 {{- end }}
 
 {{/*
-Enabled workloads with defaults merged in, as YAML. Every template reads workloads
+Enabled workloads with defaults merged in and strings tpl-rendered, as YAML. Every template reads workloads
 through this so references resolve against the same view.
 */}}
 {{- define "at.workloads" -}}
@@ -87,7 +87,8 @@ through this so references resolve against the same view.
 {{- end -}}
 {{- $_ := set $w $field $merged -}}
 {{- end -}}
-{{- $_ := set $out $key $w -}}
+{{- /* Every string is tpl-rendered, so values can reference the release, globals and helpers. */ -}}
+{{- $_ := set $out $key (tpl (toYaml $w) $ | fromYaml) -}}
 {{- end -}}
 {{- end -}}
 {{- toYaml $out -}}

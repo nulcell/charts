@@ -20,6 +20,8 @@ spec:
   rules:
     {{- range $i, $rule := required (printf "routes.%s.rules is required" $key) $r.rules }}
     - {{- with omit $rule "backends" "backendRefs" }}{{ toYaml . | nindent 6 }}{{ end }}
+      {{- /* A rule with no backends answers every match with an error - useful to block paths. */}}
+      {{- if or $rule.backends $rule.backendRefs }}
       backendRefs:
         {{- range $rule.backends }}
         {{- $svc := include "at.lookupService" (dict "workloads" $workloads "ref" . "from" (printf "routes.%s.rules[%d]" $key $i)) | fromYaml }}
@@ -32,6 +34,7 @@ spec:
         {{- with $rule.backendRefs }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
+      {{- end }}
     {{- end }}
 {{- end }}
 {{- end }}

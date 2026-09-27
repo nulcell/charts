@@ -1,5 +1,6 @@
+{{- $values := include "at.datastoreValues" . | fromYaml }}
 {{- range $key, $v := include "at.datastores" . | fromYaml }}
-{{- $d := get $.Values.datastores $key }}
+{{- $d := get $values $key }}
 {{- $storage := mustMergeOverwrite (deepCopy $.Values.defaults.persistence) (dict "size" "5Gi") ($d.storage | default dict) }}
 {{- $db := $d.database | default (include "at.fullname" $) }}
 {{- $owner := $d.owner | default (include "at.fullname" $) }}

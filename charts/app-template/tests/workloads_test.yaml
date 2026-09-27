@@ -69,3 +69,10 @@ tests:
     asserts:
       - equal: {path: 'spec.template.spec.containers[0].livenessProbe', value: {exec: {command: [true]}}}
       - notExists: {path: 'spec.template.spec.containers[0].readinessProbe'}
+  - it: tpl-renders workload strings, including the name
+    set:
+      global.suffix: blue
+      workloads.a: {name: '{{ .Release.Name }}-{{ .Values.global.suffix }}', containers: {a: {image: {repository: x}, args: ['--peer={{ .Release.Name }}']}}}
+    asserts:
+      - equal: {path: metadata.name, value: portfolio-blue}
+      - equal: {path: 'spec.template.spec.containers[0].args[0]', value: --peer=portfolio}

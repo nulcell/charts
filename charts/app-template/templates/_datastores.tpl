@@ -2,11 +2,16 @@
 Datastores as {key: {engine, type, name, host, port, selector, peers}}. Chart-managed ones
 have a selector; external ones have peers, derived from their hosts unless given.
 */}}
+{{/* datastores values with every string tpl-rendered. */}}
+{{- define "at.datastoreValues" -}}
+{{- tpl (toYaml .Values.datastores) . -}}
+{{- end }}
+
 {{- define "at.datastores" -}}
 {{- $ports := dict "postgres" 5432 "redis" 6379 "mariadb" 3306 "mysql" 3306 -}}
 {{- $types := dict "postgres" (list "cnpg" "standalone" "external") "redis" (list "standalone" "external") "mariadb" (list "operator" "external") -}}
 {{- $out := dict -}}
-{{- range $key, $d := .Values.datastores -}}
+{{- range $key, $d := include "at.datastoreValues" . | fromYaml -}}
 {{- if ne $d.enabled false -}}
 {{- if ne $d.type "external" -}}
 {{- if not (hasKey $types $d.engine) }}{{ fail (printf "datastores.%s.engine must be postgres, redis or mariadb unless type is external, got %q" $key $d.engine) }}{{ end -}}
@@ -91,11 +96,11 @@ spec:
       containers:
         - name: {{ $d.engine }}
           image: {{ printf "%s:%v" $image.repository $image.tag }}
-          {{- if not $pg }}
+          {{- $args := $d.args | default (ternary list (list "valkey-server" "--save" "60 1") $pg) }}
+          {{- if and $secret (not $pg) }}{{ $args = concat $args (list "--requirepass" "$(REDIS_PASSWORD)") }}{{ end }}
+          {{- with $args }}
           args:
-            {{- $args := $d.args | default (list "valkey-server" "--save" "60 1") }}
-            {{- if $secret }}{{ $args = concat $args (list "--requirepass" "$(REDIS_PASSWORD)") }}{{ end }}
-            {{- toYaml $args | nindent 12 }}
+            {{- toYaml . | nindent 12 }}
           {{- end }}
           {{- if or $pg $secret }}
           env:

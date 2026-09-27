@@ -63,6 +63,9 @@ datastores:
   values, which are tpl-rendered: `"{{ .Release.Name }}-db-rw"`, secret `"{{ .Release.Name }}-db-app"`.
 - **Rollouts**: pods carry a checksum of every chart-owned ConfigMap/Secret they reference.
   ExternalSecret-backed secrets live in the cluster, so changes there need a manual restart.
+- **Templating**: every string under `workloads` and `datastores` is tpl-rendered, so values
+  can use the release, `.Values.global` and helpers (`name: "{{ .Release.Name }}-migrate"`).
+  Results stay strings; write a literal `{{` as `{{ "{{" }}`.
 - **Init containers** run in key order - prefix keys (`01-migrate`) when order matters.
 - **Escape hatches**: `spec` (controller), `job`, `pod` and unknown container fields pass
   through verbatim; `networkPolicy.raw`, route `backendRefs`, datastore `cluster` likewise.

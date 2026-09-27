@@ -1,6 +1,8 @@
 # Every map below is keyed by a name you choose; that name becomes part of the object name
 # (<fullname>-<key>, or just <fullname> when the key equals it). Maps ship empty - the
 # commented entry under each shows every supported field.
+# Strings under workloads and datastores are tpl-rendered ("{{ .Release.Name }}-db-rw",
+# "{{ .Values.global.x }}"); write a literal "{{" as {{ "{{" }}. Results stay strings.
 
 nameOverride: ""      # app.kubernetes.io/name; defaults to the release name
 fullnameOverride: ""  # object-name prefix; defaults to the release name
@@ -155,7 +157,7 @@ routes: {}
   #   annotations: {}
   #   hostnames: [api.example.com]  # tpl-rendered
   #   parentRefs: []            # defaults.route.parentRefs when empty
-  #   rules:
+  #   rules:                    # a rule with no backends rejects its matches (blocks paths)
   #     - matches: [{path: {type: PathPrefix, value: /}}]
   #       backends:
   #         - {workload: api, service: api, port: http, weight: 1}  # port: a service port name or number
@@ -188,7 +190,7 @@ datastores: {}
   #   existingSecret: ""        # standalone postgres (required) / redis (optional password)
   #   usernameKey: username
   #   passwordKey: password
-  #   args: []                  # standalone redis; default valkey-server --save "60 1"
+  #   args: []                  # standalone; redis defaults to valkey-server --save "60 1"
   #   host: ""                  # external: one host, or
   #   hosts: []                 #   several (sentinel, cluster, HA)
   #   port: 0                   # engine default; required for engines without one
@@ -196,7 +198,8 @@ datastores: {}
   #                             #   when empty: IP -> /32, bare name -> this namespace, x.ns.svc -> namespace ns, else fqdn
   #   cluster: {}               # cnpg Cluster / MariaDB spec, merged over the derived one
   #
-  # Names: cnpg host <fullname>-<key>-rw, secret <fullname>-<key>-app (username, password, uri);
+  # Names: cnpg host <fullname>-<key>-rw, secret <fullname>-<key>-app (username, password, uri),
+  # <fullname>-<key>-superuser with cluster.enableSuperuserAccess;
   # standalone Service <fullname>-<key>; mariadb Service <fullname>-<key>, secret <fullname>-<key>-password.
 
 serviceAccounts:
