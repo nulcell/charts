@@ -1,0 +1,46 @@
+{{- range $key, $cm := .Values.configMaps }}
+---
+apiVersion: v1
+kind: ConfigMap
+{{ include "at.metadata" (dict "ctx" $ "name" (include "at.resourceName" (list $ $key)) "annotations" $cm.annotations) }}
+{{- with $cm.data }}
+data:
+  {{- tpl (toYaml .) $ | nindent 2 }}
+{{- end }}
+{{- with $cm.binaryData }}
+binaryData:
+  {{- toYaml . | nindent 2 }}
+{{- end }}
+{{- end }}
+{{- range $key, $s := .Values.secrets }}
+---
+apiVersion: v1
+kind: Secret
+{{ include "at.metadata" (dict "ctx" $ "name" (include "at.resourceName" (list $ $key)) "annotations" $s.annotations) }}
+type: {{ $s.type | default "Opaque" }}
+{{- with $s.stringData }}
+stringData:
+  {{- tpl (toYaml .) $ | nindent 2 }}
+{{- end }}
+{{- end }}
+{{- range $key, $es := .Values.externalSecrets }}
+{{- $name := include "at.resourceName" (list $ $key) }}
+{{- $store := $es.store | default $.Values.defaults.externalSecret.store }}
+{{- if not $store.name }}{{ fail (printf "externalSecrets.%s: set store.name or defaults.externalSecret.store.name" $key) }}{{ end }}
+{{- $spec := dict "refreshInterval" ($es.refreshInterval | default $.Values.defaults.externalSecret.refreshInterval) "secretStoreRef" $store "target" (merge (deepCopy ($es.target | default dict)) (dict "name" $name "creationPolicy" "Owner")) }}
+{{- with $es.data }}
+{{- $data := list }}
+{{- range $k := keys . | sortAlpha }}
+{{- $ref := get $es.data $k }}
+{{- $data = append $data (dict "secretKey" $k "remoteRef" (kindIs "map" $ref | ternary $ref (dict "key" $ref))) }}
+{{- end }}
+{{- $_ := set $spec "data" $data }}
+{{- end }}
+{{- with $es.dataFrom }}{{ $_ := set $spec "dataFrom" . }}{{ end }}
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+{{ include "at.metadata" (dict "ctx" $ "name" $name "annotations" (merge (deepCopy ($es.annotations | default dict)) (dict "argocd.argoproj.io/sync-wave" "-1"))) }}
+spec:
+  {{- toYaml (mustMergeOverwrite $spec ($es.spec | default dict)) | nindent 2 }}
+{{- end }}

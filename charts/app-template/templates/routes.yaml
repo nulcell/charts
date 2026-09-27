@@ -1,0 +1,37 @@
+{{- $workloads := include "at.workloads" . | fromYaml }}
+{{- $versions := dict "HTTPRoute" "v1" "GRPCRoute" "v1" "TCPRoute" "v1alpha2" "UDPRoute" "v1alpha2" "TLSRoute" "v1alpha2" }}
+{{- range $key, $r := .Values.routes }}
+{{- if ne $r.enabled false }}
+{{- $kind := $r.kind | default "HTTPRoute" }}
+{{- if not (hasKey $versions $kind) }}{{ fail (printf "routes.%s.kind must be HTTPRoute, GRPCRoute, TCPRoute, UDPRoute or TLSRoute, got %q" $key $kind) }}{{ end }}
+---
+apiVersion: {{ $r.apiVersion | default (printf "gateway.networking.k8s.io/%s" (get $versions $kind)) }}
+kind: {{ $kind }}
+{{ include "at.metadata" (dict "ctx" $ "name" (include "at.resourceName" (list $ $key)) "annotations" $r.annotations) }}
+spec:
+  parentRefs:
+    {{- toYaml (required (printf "routes.%s: set parentRefs or defaults.route.parentRefs" $key) ($r.parentRefs | default $.Values.defaults.route.parentRefs)) | nindent 4 }}
+  {{- with $r.hostnames }}
+  hostnames:
+    {{- range . }}
+    - {{ tpl . $ | quote }}
+    {{- end }}
+  {{- end }}
+  rules:
+    {{- range $i, $rule := required (printf "routes.%s.rules is required" $key) $r.rules }}
+    - {{- with omit $rule "backends" "backendRefs" }}{{ toYaml . | nindent 6 }}{{ end }}
+      backendRefs:
+        {{- range $rule.backends }}
+        {{- $svc := include "at.lookupService" (dict "workloads" $workloads "ref" . "from" (printf "routes.%s.rules[%d]" $key $i)) | fromYaml }}
+        - group: ""
+          kind: Service
+          name: {{ include "at.serviceName" (list $ .workload .service) }}
+          port: {{ include "at.servicePort" (dict "svc" $svc "port" .port "ref" (printf "routes.%s" $key)) }}
+          weight: {{ .weight | default 1 }}
+        {{- end }}
+        {{- with $rule.backendRefs }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    {{- end }}
+{{- end }}
+{{- end }}

@@ -1,0 +1,238 @@
+# Every map below is keyed by a name you choose; that name becomes part of the object name
+# (<fullname>-<key>, or just <fullname> when the key equals it). Maps ship empty - the
+# commented entry under each shows every supported field.
+
+nameOverride: ""      # app.kubernetes.io/name; defaults to the release name
+fullnameOverride: ""  # object-name prefix; defaults to the release name
+commonLabels: {}
+commonAnnotations: {}
+
+# Merged into every entry of the matching map; an entry's own value wins, lists replace.
+defaults:
+  workload:
+    imagePullSecrets: []  # names or {name: x}
+    enableServiceLinks: false
+    serviceAccount: default
+    podSecurityContext:
+      runAsNonRoot: true
+      runAsUser: 65532
+      runAsGroup: 65532
+      fsGroup: 65532
+      seccompProfile:
+        type: RuntimeDefault
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    topologySpreadConstraints: []
+    priorityClassName: ""
+  container:
+    image:
+      pullPolicy: IfNotPresent
+    securityContext:
+      allowPrivilegeEscalation: false
+      readOnlyRootFilesystem: true
+      capabilities:
+        drop: [ALL]
+      seccompProfile:
+        type: RuntimeDefault
+    resources: {}
+  persistence:
+    storageClass: ""  # empty = cluster default
+    accessMode: ReadWriteOnce
+  route:
+    parentRefs: []    # used by any route that sets none
+  externalSecret:
+    store:
+      kind: ClusterSecretStore
+      name: ""
+    refreshInterval: 2h
+
+workloads: {}
+  # api:
+  #   enabled: true
+  #   type: deployment        # deployment|statefulset|daemonset|pod|job|cronjob
+  #   replicas: 1             # deployment/statefulset only; ignored while autoscaling
+  #   schedule: "0 * * * *"   # cronjob only
+  #   annotations: {}         # controller metadata
+  #   labels: {}
+  #   podAnnotations: {}      # values are tpl-rendered
+  #   podLabels: {}
+  #   spec: {}                # merged verbatim into the controller spec (strategy, podManagementPolicy, concurrencyPolicy, ...)
+  #   job: {}                 # job/cronjob: merged into the Job spec (backoffLimit, ttlSecondsAfterFinished, ...)
+  #   pod: {}                 # merged verbatim into the pod spec (hostNetwork, dnsPolicy, restartPolicy, ...)
+  #   serviceAccount: default # a serviceAccounts key, or the name of an existing SA
+  #   # plus any defaults.workload key
+  #   containers:
+  #     api:
+  #       image: {repository: ghcr.io/org/api, tag: "1.0.0", digest: ""}
+  #       env:                  # rendered sorted; values (strings or maps) are tpl-rendered
+  #         LOG_LEVEL: info
+  #         DB_PASSWORD:
+  #           valueFrom:
+  #             secretKeyRef: {name: "{{ .Release.Name }}-db-app", key: password}
+  #       envFrom:              # a configMaps/secrets/externalSecrets key resolves to the chart object
+  #         - secret: api-env
+  #         - configMap: api-config
+  #       ports:
+  #         http: 8080          # or {port: 8080, protocol: UDP}
+  #       probes:               # raw Kubernetes probes; omit or {} for none
+  #         startup: {}
+  #         liveness: {httpGet: {path: /livez, port: http}}
+  #         readiness: {httpGet: {path: /readyz, port: http}}
+  #       resources: {requests: {cpu: 50m, memory: 64Mi}, limits: {memory: 128Mi}}
+  #       securityContext: {}
+  #       # any other container field (command, args, lifecycle, restartPolicy, ...) passes through
+  #   initContainers: {}      # same shape; run in key order, restartPolicy: Always makes a native sidecar
+  #   services:
+  #     api:                    # keyed like the workload -> named like it; otherwise <workload>-<key>
+  #       type: ClusterIP
+  #       ports:
+  #         http: 80            # targetPort defaults to the port's name; or {port, targetPort, protocol, nodePort}
+  #       annotations: {}
+  #       serviceMonitor: {enabled: false, endpoints: []}  # endpoints default to every port
+  #       # any other Service spec field (clusterIP, externalTrafficPolicy, ...) passes through
+  #   volumeClaimTemplates:     # statefulset only
+  #     data: {size: 1Gi, storageClass: "", accessMode: ReadWriteOnce, globalMounts: [{path: /data}], advancedMounts: {}}
+  #   autoscaling:              # deployment/statefulset only
+  #     enabled: false
+  #     type: hpa               # hpa|keda
+  #     minReplicas: 1
+  #     maxReplicas: 3
+  #     metrics: []             # hpa; empty = 80% CPU
+  #     triggers: []            # keda
+  #     behavior: {}
+  #     spec: {}                # merged into the HPA/ScaledObject spec
+  #   vpa: {enabled: false, updateMode: "Off", spec: {}}
+  #   pdb: {enabled: false, minAvailable: 1}  # or maxUnavailable
+  #   networkPolicy:            # default-deny both ways; DNS egress is the only implicit rule
+  #     enabled: true
+  #     ingress:
+  #       - gateway             # Gateway API / ingress traffic to this workload's service ports
+  #       - prometheus          # networkPolicy.prometheus peer
+  #       - world
+  #       - {workload: worker, port: http}   # port: a name or number on this workload; omit for any
+  #       - {namespace: monitoring, podLabels: {}, port: http}
+  #       - {cidr: 10.0.0.0/8, port: 8080}
+  #     egress:
+  #       - world
+  #       - {datastore: db}     # also opens the datastore's ingress to this workload
+  #       - {workload: api, port: http}      # port: a name or number on the target workload
+  #       - {namespace: other, podLabels: {}, port: 443}
+  #       - {fqdn: "*.github.com", port: 443}
+  #       - {cidr: 0.0.0.0/0, port: 443}
+  #     raw: {ingress: [], egress: []}      # appended verbatim; Cilium rules unless type is kubernetes
+
+persistence: {}
+  # data:
+  #   enabled: true
+  #   type: pvc                 # pvc|existingClaim|emptyDir|configMap|secret|hostPath
+  #   size: 1Gi                 # pvc
+  #   storageClass: ""          # pvc; defaults.persistence
+  #   accessMode: ReadWriteOnce # pvc; or accessModes: [...]
+  #   retain: false             # pvc: keep on uninstall
+  #   existingClaim: ""         # existingClaim
+  #   medium: ""                # emptyDir
+  #   sizeLimit: ""             # emptyDir
+  #   name: ""                  # configMap/secret: a configMaps/secrets/externalSecrets key or existing object
+  #   items: []                 # configMap/secret
+  #   defaultMode: null         # configMap/secret
+  #   path: ""                  # hostPath
+  #   hostPathType: ""          # hostPath
+  #   globalMounts:             # every container of every workload
+  #     - {path: /data, subPath: "", readOnly: false}
+  #   advancedMounts:           # <workload>: {<container>: [mounts]}
+  #     api:
+  #       api: [{path: /data}]
+
+routes: {}
+  # api:
+  #   enabled: true
+  #   kind: HTTPRoute           # HTTPRoute|GRPCRoute|TCPRoute|UDPRoute|TLSRoute
+  #   apiVersion: ""            # override, e.g. TLSRoute gateway.networking.k8s.io/v1alpha3
+  #   annotations: {}
+  #   hostnames: [api.example.com]  # tpl-rendered
+  #   parentRefs: []            # defaults.route.parentRefs when empty
+  #   rules:
+  #     - matches: [{path: {type: PathPrefix, value: /}}]
+  #       backends:
+  #         - {workload: api, service: api, port: http, weight: 1}  # port: a service port name or number
+  #       # filters, timeouts, ... pass through; raw backendRefs are appended
+
+ingresses: {}
+  # api:
+  #   enabled: true
+  #   className: ""
+  #   annotations: {}
+  #   hosts:
+  #     - host: api.example.com   # tpl-rendered
+  #       paths:
+  #         - {path: /, pathType: Prefix, workload: api, service: api, port: http}
+  #   tls: []
+
+datastores: {}
+  # db:
+  #   engine: postgres          # postgres|redis|mariadb
+  #   type: cnpg                # postgres: cnpg|standalone|external; redis: standalone|external; mariadb: operator|external
+  #   database: ""              # postgres/mariadb; defaults to the fullname
+  #   owner: ""                 # postgres/mariadb user; defaults to the fullname
+  #   instances: 1              # cnpg/operator
+  #   image: {repository: "", tag: ""}  # standalone: postgres:18 / valkey/valkey:8; cnpg: imageName
+  #   storage: {size: 5Gi, storageClass: "", accessMode: ReadWriteOnce}
+  #   resources: {}
+  #   monitoring: false         # cnpg PodMonitor + prometheus ingress on 9187
+  #   existingSecret: ""        # standalone postgres (required) / redis (optional password)
+  #   usernameKey: username
+  #   passwordKey: password
+  #   args: []                  # standalone redis; default valkey-server --save "60 1"
+  #   host: ""                  # external
+  #   port: 0                   # external; engine default otherwise
+  #   cluster: {}               # cnpg Cluster / MariaDB spec, merged over the derived one
+  #
+  # Names: cnpg host <fullname>-<key>-rw, secret <fullname>-<key>-app (username, password, uri);
+  # standalone Service <fullname>-<key>; mariadb Service <fullname>-<key>, secret <fullname>-<key>-password.
+
+serviceAccounts:
+  default:                    # the `default` key is named <fullname>; others <fullname>-<key>
+    create: true              # false: workloads use `name`, or the namespace's default SA
+    name: ""
+    automount: false
+    annotations: {}
+    rules: []                 # Role rules; a RoleBinding to this SA is added
+
+configMaps: {}
+  # config:
+  #   annotations: {}
+  #   data: {}                  # values tpl-rendered; pods that reference it roll on change
+
+secrets: {}
+  # env:
+  #   type: Opaque
+  #   annotations: {}
+  #   stringData: {}            # tpl-rendered; don't commit real secrets - use externalSecrets
+
+externalSecrets: {}
+  # env:
+  #   store: {}                 # defaults.externalSecret.store
+  #   refreshInterval: ""       # defaults.externalSecret.refreshInterval
+  #   annotations: {}           # sync-wave -1 is added
+  #   data:
+  #     PASSWORD: item/field    # or a full remoteRef map
+  #   dataFrom: []
+  #   target: {}                # merged over {name: <object name>, creationPolicy: Owner}
+  #   spec: {}                  # merged over the whole spec
+
+networkPolicy:
+  enabled: true
+  type: cilium                # cilium|kubernetes|both
+  dns:
+    namespace: kube-system
+    podLabels:
+      k8s-app: kube-dns
+  prometheus:
+    namespace: monitoring
+    podLabels:
+      app.kubernetes.io/name: prometheus
+  operators:                  # datastore operators that must reach their pods
+    cnpg: cnpg-system
+    mariadb: mariadb-operator
+  gatewayPeers: []            # kubernetes type only: NetworkPolicyPeers `gateway` stands for

@@ -1,0 +1,53 @@
+suite: workloads
+templates: [workloads.yaml]
+release: {name: portfolio, namespace: web}
+tests:
+  - it: collapses a key equal to the fullname
+    set:
+      workloads.portfolio.containers.portfolio.image: {repository: x, tag: "1"}
+    asserts:
+      - equal: {path: metadata.name, value: portfolio}
+      - equal: {path: 'spec.selector.matchLabels["app.kubernetes.io/component"]', value: portfolio}
+  - it: prefixes other keys
+    set:
+      workloads.worker.containers.worker.image.repository: x
+    asserts:
+      - equal: {path: metadata.name, value: portfolio-worker}
+  - it: lets an entry override a default, including false
+    set:
+      workloads.a.containers.a:
+        image: {repository: x}
+        securityContext: {readOnlyRootFilesystem: false}
+    asserts:
+      - equal: {path: 'spec.template.spec.containers[0].securityContext.readOnlyRootFilesystem', value: false}
+      - equal: {path: 'spec.template.spec.containers[0].securityContext.allowPrivilegeEscalation', value: false}
+  - it: omits replicas while autoscaling
+    set:
+      workloads.a: {replicas: 3, autoscaling: {enabled: true}, containers: {a: {image: {repository: x}}}}
+    asserts:
+      - notExists: {path: spec.replicas}
+  - it: rolls pods when a referenced configMap changes
+    set:
+      configMaps.cfg.data.A: "1"
+      workloads.a.containers.a: {image: {repository: x}, envFrom: [{configMap: cfg}]}
+    asserts:
+      - exists: {path: 'spec.template.metadata.annotations["checksum/configmaps-cfg"]'}
+      - equal: {path: 'spec.template.spec.containers[0].envFrom[0].configMapRef.name', value: portfolio-cfg}
+  - it: renders env as a sorted, tpl-rendered list
+    set:
+      workloads.a.containers.a: {image: {repository: x}, env: {Z: "1", A: "{{ .Release.Name }}"}}
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].env
+          value: [{name: A, value: portfolio}, {name: Z, value: "1"}]
+  - it: wraps a cronjob pod in a jobTemplate with OnFailure
+    set:
+      workloads.a: {type: cronjob, schedule: "@daily", containers: {a: {image: {repository: x}}}}
+    asserts:
+      - isKind: {of: CronJob}
+      - equal: {path: spec.jobTemplate.spec.template.spec.restartPolicy, value: OnFailure}
+  - it: rejects replicas on a daemonset
+    set:
+      workloads.a: {type: daemonset, replicas: 2, containers: {a: {image: {repository: x}}}}
+    asserts:
+      - failedTemplate: {errorMessage: workloads.a.replicas only applies to deployment/statefulset}

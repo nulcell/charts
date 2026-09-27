@@ -1,0 +1,27 @@
+name: release
+on:
+  push:
+    branches: [main]
+    paths: [charts/**]
+permissions:
+  contents: read
+  packages: write
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: azure/setup-helm@v4
+      - name: Push new chart versions
+        env:
+          REGISTRY: oci://ghcr.io/${{ github.repository_owner }}/charts
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io -u "${{ github.actor }}" --password-stdin
+          for chart in charts/*/; do
+            name=$(yq .name "$chart/Chart.yaml"); version=$(yq .version "$chart/Chart.yaml")
+            if helm show chart "$REGISTRY/$name" --version "$version" >/dev/null 2>&1; then
+              echo "$name $version already published"; continue
+            fi
+            helm package "$chart" -d dist
+            helm push "dist/$name-$version.tgz" "$REGISTRY"
+          done

@@ -1,0 +1,55 @@
+{{- $kinds := dict "deployment" "Deployment" "statefulset" "StatefulSet" "daemonset" "DaemonSet" }}
+{{- range $key, $w := include "at.workloads" . | fromYaml }}
+{{- $name := include "at.resourceName" (list $ $key) }}
+{{- $target := dict "apiVersion" "apps/v1" "kind" (get $kinds $w.type) "name" $name }}
+{{- with $w.autoscaling }}
+{{- if .enabled }}
+{{- if eq (.type | default "hpa") "hpa" }}
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+{{ include "at.metadata" (dict "ctx" $ "name" $name "component" $key) }}
+spec:
+  {{- $spec := dict "scaleTargetRef" $target "minReplicas" (.minReplicas | default 1) "maxReplicas" (.maxReplicas | default 3) "metrics" (.metrics | default (list (dict "type" "Resource" "resource" (dict "name" "cpu" "target" (dict "type" "Utilization" "averageUtilization" 80))))) }}
+  {{- with .behavior }}{{ $_ := set $spec "behavior" . }}{{ end }}
+  {{- toYaml (mustMergeOverwrite $spec (.spec | default dict)) | nindent 2 }}
+{{- else }}
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+{{ include "at.metadata" (dict "ctx" $ "name" $name "component" $key) }}
+spec:
+  {{- $spec := dict "scaleTargetRef" (omit $target "apiVersion") "minReplicaCount" (.minReplicas | default 0) "maxReplicaCount" (.maxReplicas | default 3) "triggers" (required (printf "workloads.%s.autoscaling.triggers is required for keda" $key) .triggers) }}
+  {{- with .behavior }}{{ $_ := set $spec "advanced" (dict "horizontalPodAutoscalerConfig" (dict "behavior" .)) }}{{ end }}
+  {{- toYaml (mustMergeOverwrite $spec (.spec | default dict)) | nindent 2 }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- with $w.vpa }}
+{{- if .enabled }}
+---
+apiVersion: autoscaling.k8s.io/v1
+kind: VerticalPodAutoscaler
+{{ include "at.metadata" (dict "ctx" $ "name" $name "component" $key) }}
+spec:
+  {{- toYaml (mustMergeOverwrite (dict "targetRef" $target "updatePolicy" (dict "updateMode" (.updateMode | default "Off"))) (.spec | default dict)) | nindent 2 }}
+{{- end }}
+{{- end }}
+{{- with $w.pdb }}
+{{- if .enabled }}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+{{ include "at.metadata" (dict "ctx" $ "name" $name "component" $key) }}
+spec:
+  {{- if hasKey . "maxUnavailable" }}
+  maxUnavailable: {{ .maxUnavailable }}
+  {{- else }}
+  minAvailable: {{ .minAvailable | default 1 }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "at.selectorLabels" (dict "ctx" $ "component" $key) | nindent 6 }}
+{{- end }}
+{{- end }}
+{{- end }}

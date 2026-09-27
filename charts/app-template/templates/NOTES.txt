@@ -1,0 +1,15 @@
+{{- $workloads := include "at.workloads" . | fromYaml }}
+{{ .Release.Name }} in {{ .Release.Namespace }}:
+{{- range $key, $w := $workloads }}
+  {{ $w.type }} {{ include "at.resourceName" (list $ $key) }}
+  {{- range $svc, $_ := $w.services }}
+    service {{ include "at.serviceName" (list $ $key $svc) }}
+  {{- end }}
+{{- end }}
+{{- range $key, $d := include "at.datastores" . | fromYaml }}
+  {{ $d.engine }} ({{ $d.type }}) {{ $key }}: {{ $d.host }}:{{ $d.port }}
+  {{- if eq $d.type "cnpg" }}, secret {{ $d.name }}-app{{ else if eq $d.type "operator" }}, secret {{ $d.name }}-password{{ end }}
+{{- end }}
+{{- range $key, $r := .Values.routes }}
+  route {{ $key }}: {{ tpl (join ", " ($r.hostnames | default list)) $ }}
+{{- end }}

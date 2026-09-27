@@ -1,0 +1,49 @@
+{{- range $key, $w := include "at.workloads" . | fromYaml }}
+{{- range $svcKey, $svc := $w.services }}
+{{- if ne $svc.enabled false }}
+{{- $name := include "at.serviceName" (list $ $key $svcKey) }}
+---
+apiVersion: v1
+kind: Service
+{{ include "at.metadata" (dict "ctx" $ "name" $name "component" $key "labels" $svc.labels "annotations" $svc.annotations) }}
+spec:
+  type: {{ $svc.type | default "ClusterIP" }}
+  selector:
+    {{- include "at.selectorLabels" (dict "ctx" $ "component" $key) | nindent 4 }}
+  ports:
+    {{- range $port, $p := required (printf "workloads.%s.services.%s.ports is required" $key $svcKey) $svc.ports }}
+    {{- $p = kindIs "map" $p | ternary $p (dict "port" $p) }}
+    - name: {{ $port }}
+      port: {{ $p.port }}
+      targetPort: {{ $p.targetPort | default $port }}
+      protocol: {{ $p.protocol | default "TCP" }}
+      {{- with $p.nodePort }}
+      nodePort: {{ . }}
+      {{- end }}
+    {{- end }}
+  {{- with omit $svc "enabled" "type" "ports" "annotations" "labels" "serviceMonitor" }}
+  {{- toYaml . | nindent 2 }}
+  {{- end }}
+{{- with $svc.serviceMonitor }}
+{{- if .enabled }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+{{ include "at.metadata" (dict "ctx" $ "name" $name "component" $key) }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "at.selectorLabels" (dict "ctx" $ "component" $key) | nindent 6 }}
+  endpoints:
+    {{- if .endpoints }}
+    {{- toYaml .endpoints | nindent 4 }}
+    {{- else }}
+    {{- range $port, $_ := $svc.ports }}
+    - port: {{ $port }}
+    {{- end }}
+    {{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}

@@ -1,0 +1,162 @@
+defaults:
+  workload:
+    imagePullSecrets: [regcred]
+  route:
+    parentRefs:
+      - {name: internal, namespace: gateway, sectionName: https}
+  externalSecret:
+    store: {kind: ClusterSecretStore, name: onepassword}
+workloads:
+  api:
+    replicas: 2
+    spec:
+      strategy: {type: RollingUpdate}
+    topologySpreadConstraints:
+      - {maxSkew: 1, topologyKey: kubernetes.io/hostname, whenUnsatisfiable: ScheduleAnyway}
+    containers:
+      api:
+        image: {repository: ghcr.io/example/api, tag: "1.2.3"}
+        env:
+          LOG_LEVEL: info
+          RELEASE: "{{ .Release.Name }}"
+          DB_PASSWORD:
+            valueFrom:
+              secretKeyRef: {name: "{{ .Release.Name }}-db-app", key: password}
+        envFrom:
+          - configMap: config
+          - externalSecret: env
+        ports: {http: 8080, metrics: 9090}
+        probes:
+          readiness: {httpGet: {path: /readyz, port: http}}
+        resources: {requests: {cpu: 50m, memory: 64Mi}, limits: {memory: 128Mi}}
+    initContainers:
+      migrate:
+        image: {repository: ghcr.io/example/api, tag: "1.2.3"}
+        args: [migrate]
+    services:
+      api:
+        ports: {http: 80}
+      metrics:
+        ports: {metrics: 9090}
+        serviceMonitor: {enabled: true}
+    autoscaling: {enabled: true, type: hpa, maxReplicas: 5}
+    pdb: {enabled: true}
+    networkPolicy:
+      ingress:
+        - gateway
+        - prometheus
+        - {workload: worker, port: http}
+        - {namespace: monitoring, port: metrics}
+      egress:
+        - {datastore: db}
+        - {datastore: cache}
+        - {fqdn: "*.github.com", port: 443}
+  worker:
+    type: statefulset
+    containers:
+      worker:
+        image: {repository: ghcr.io/example/api, tag: "1.2.3"}
+        args: [worker]
+    volumeClaimTemplates:
+      scratch: {size: 2Gi, globalMounts: [{path: /scratch}]}
+    autoscaling:
+      enabled: true
+      type: keda
+      triggers: [{type: cpu, metricType: Utilization, metadata: {value: "70"}}]
+    vpa: {enabled: true}
+    networkPolicy:
+      egress:
+        - {workload: api, port: http}
+        - {datastore: db}
+        - world
+  agent:
+    type: daemonset
+    containers:
+      agent:
+        image: {repository: busybox, tag: "1.37"}
+        securityContext: {readOnlyRootFilesystem: false}
+    networkPolicy: {enabled: false}
+  once:
+    type: pod
+    containers:
+      once:
+        image: {repository: busybox, tag: "1.37"}
+  seed:
+    type: job
+    job: {backoffLimit: 2}
+    containers:
+      seed:
+        image: {repository: busybox, tag: "1.37"}
+  nightly:
+    type: cronjob
+    schedule: "0 3 * * *"
+    spec: {concurrencyPolicy: Forbid}
+    containers:
+      nightly:
+        image: {repository: busybox, tag: "1.37"}
+persistence:
+  data:
+    size: 1Gi
+    accessMode: ReadWriteMany
+    retain: true
+    advancedMounts:
+      api: {api: [{path: /data}]}
+      worker: {worker: [{path: /data, subPath: worker}]}
+  tmp:
+    type: emptyDir
+    globalMounts: [{path: /tmp}]
+  cfg:
+    type: configMap
+    name: config
+    advancedMounts:
+      api: {api: [{path: /etc/app, readOnly: true}]}
+routes:
+  api:
+    hostnames: ["{{ .Release.Name }}.example.com"]
+    rules:
+      - matches: [{path: {type: PathPrefix, value: /}}]
+        backends: [{workload: api, service: api, port: http}]
+  grpc:
+    kind: GRPCRoute
+    rules:
+      - backends: [{workload: api, service: api, port: 80}]
+ingresses:
+  api:
+    className: nginx
+    hosts:
+      - host: api.example.com
+        paths: [{path: /, workload: api, service: api, port: http}]
+datastores:
+  db:
+    engine: postgres
+    type: cnpg
+    monitoring: true
+    storage: {size: 10Gi}
+  cache:
+    engine: redis
+    type: standalone
+  sql:
+    engine: postgres
+    type: standalone
+    existingSecret: sql-creds
+  maria:
+    engine: mariadb
+    type: operator
+  ext:
+    engine: postgres
+    type: external
+    host: db.example.com
+serviceAccounts:
+  default:
+    rules:
+      - {apiGroups: [""], resources: [configmaps], verbs: [get]}
+configMaps:
+  config:
+    data: {APP_NAME: "{{ .Release.Name }}"}
+secrets:
+  plain:
+    stringData: {TOKEN: dummy}
+externalSecrets:
+  env:
+    data:
+      API_KEY: item-id/api-key

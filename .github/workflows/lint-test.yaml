@@ -1,0 +1,34 @@
+name: lint-test
+on:
+  pull_request:
+    paths: [charts/**]
+permissions:
+  contents: read
+jobs:
+  lint-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: azure/setup-helm@v4
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.x"
+      - uses: helm/chart-testing-action@v2
+      - name: ct lint
+        run: ct lint --config ct.yaml
+      - name: helm unittest
+        run: |
+          helm plugin install https://github.com/helm-unittest/helm-unittest
+          for chart in charts/*/; do [ -d "$chart/tests" ] && helm unittest "$chart"; done
+      - name: kubeconform
+        run: |
+          curl -sSL https://github.com/yannh/kubeconform/releases/download/v0.8.0/kubeconform-linux-amd64.tar.gz | tar xz kubeconform
+          for chart in charts/*/; do
+            for f in "$chart"ci/*.yaml; do
+              helm template t "$chart" -f "$f" | ./kubeconform -strict -summary \
+                -schema-location default \
+                -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json'
+            done
+          done

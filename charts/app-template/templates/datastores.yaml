@@ -1,0 +1,33 @@
+{{- range $key, $v := include "at.datastores" . | fromYaml }}
+{{- $d := get $.Values.datastores $key }}
+{{- $storage := mustMergeOverwrite (deepCopy $.Values.defaults.persistence) (dict "size" "5Gi") ($d.storage | default dict) }}
+{{- $db := $d.database | default (include "at.fullname" $) }}
+{{- $owner := $d.owner | default (include "at.fullname" $) }}
+{{- if eq $v.type "cnpg" }}
+{{- $spec := dict "instances" ($d.instances | default 1) "primaryUpdateStrategy" "unsupervised" "bootstrap" (dict "initdb" (dict "database" $db "owner" $owner)) "storage" (dict "size" $storage.size) }}
+{{- with $storage.storageClass }}{{ $_ := set $spec.storage "storageClass" . }}{{ end }}
+{{- with $d.image }}{{ $_ := set $spec "imageName" (printf "%s:%v" .repository .tag) }}{{ end }}
+{{- with $d.resources }}{{ $_ := set $spec "resources" . }}{{ end }}
+{{- if $d.monitoring }}{{ $_ := set $spec "monitoring" (dict "enablePodMonitor" true) }}{{ end }}
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+{{ include "at.metadata" (dict "ctx" $ "name" $v.name "component" $key) }}
+spec:
+  {{- toYaml (mustMergeOverwrite $spec ($d.cluster | default dict)) | nindent 2 }}
+{{- else if eq $v.type "operator" }}
+{{- $spec := dict "database" $db "username" $owner "replicas" ($d.instances | default 1) "rootPasswordSecretKeyRef" (dict "name" (printf "%s-root" $v.name) "key" "password" "generate" true) "passwordSecretKeyRef" (dict "name" (printf "%s-password" $v.name) "key" "password" "generate" true) "storage" (dict "size" $storage.size) }}
+{{- with $storage.storageClass }}{{ $_ := set $spec.storage "storageClassName" . }}{{ end }}
+{{- with $d.image }}{{ $_ := set $spec "image" (printf "%s:%v" .repository .tag) }}{{ end }}
+{{- with $d.resources }}{{ $_ := set $spec "resources" . }}{{ end }}
+---
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+{{ include "at.metadata" (dict "ctx" $ "name" $v.name "component" $key) }}
+spec:
+  {{- toYaml (mustMergeOverwrite $spec ($d.cluster | default dict)) | nindent 2 }}
+{{- else if eq $v.type "standalone" }}
+---
+{{ include "at.standaloneDatastore" (dict "ctx" $ "key" $key "d" $d "v" $v) }}
+{{- end }}
+{{- end }}

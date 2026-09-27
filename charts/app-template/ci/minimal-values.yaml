@@ -1,0 +1,17 @@
+workloads:
+  web:
+    containers:
+      web:
+        image: {repository: nginxinc/nginx-unprivileged, tag: "1.29"}
+        ports: {http: 8080}
+    services:
+      web:
+        ports: {http: 80}
+    networkPolicy:
+      ingress: [gateway]
+routes:
+  web:
+    parentRefs: [{name: gw}]
+    hostnames: [web.example.com]
+    rules:
+      - backends: [{workload: web, service: web, port: http}]

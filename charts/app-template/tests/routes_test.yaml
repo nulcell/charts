@@ -1,0 +1,21 @@
+suite: routes
+templates: [routes.yaml]
+release: {name: app}
+set:
+  defaults.route.parentRefs: [{name: gw, namespace: gateway}]
+  workloads.api:
+    containers: {api: {image: {repository: x}}}
+    services: {api: {ports: {http: 80}}, admin: {ports: {admin: 9000}}}
+tests:
+  - it: resolves backends to service names and port numbers
+    set:
+      routes.api.rules: [{backends: [{workload: api, service: admin, port: admin}]}]
+    asserts:
+      - equal: {path: 'spec.parentRefs[0].name', value: gw}
+      - equal: {path: 'spec.rules[0].backendRefs[0].name', value: app-api-admin}
+      - equal: {path: 'spec.rules[0].backendRefs[0].port', value: 9000}
+  - it: fails on a dangling service
+    set:
+      routes.api.rules: [{backends: [{workload: api, service: nope, port: 80}]}]
+    asserts:
+      - failedTemplate: {errorMessage: 'routes.api.rules[0]: workload "api" has no service "nope"'}

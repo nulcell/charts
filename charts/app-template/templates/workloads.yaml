@@ -1,0 +1,63 @@
+{{- include "at.validate" . }}
+{{- $kinds := dict "deployment" "Deployment" "statefulset" "StatefulSet" "daemonset" "DaemonSet" "pod" "Pod" "job" "Job" "cronjob" "CronJob" }}
+{{- range $key, $w := include "at.workloads" . | fromYaml }}
+{{- $name := include "at.resourceName" (list $ $key) }}
+{{- $selector := include "at.selectorLabels" (dict "ctx" $ "component" $key) }}
+{{- $pod := include "at.pod" (dict "ctx" $ "key" $key "w" $w) }}
+---
+apiVersion: {{ has $w.type (list "job" "cronjob") | ternary "batch/v1" (eq $w.type "pod" | ternary "v1" "apps/v1") }}
+kind: {{ get $kinds $w.type }}
+{{ include "at.metadata" (dict "ctx" $ "name" $name "component" $key "labels" $w.labels "annotations" $w.annotations) }}
+{{- if eq $w.type "pod" }}
+{{ pick ($pod | fromYaml) "spec" | toYaml }}
+{{- else }}
+spec:
+  {{- if and (has $w.type (list "deployment" "statefulset")) (not ($w.autoscaling | default dict).enabled) }}
+  replicas: {{ $w.replicas | default 1 }}
+  {{- end }}
+  {{- if eq $w.type "statefulset" }}
+  {{- $svc := $w.services | default dict | keys | sortAlpha | first | default $key }}
+  serviceName: {{ include "at.serviceName" (list $ $key $svc) }}
+  {{- end }}
+  {{- if eq $w.type "cronjob" }}
+  schedule: {{ $w.schedule | quote }}
+  {{- end }}
+  {{- with $w.spec }}
+  {{- toYaml . | nindent 2 }}
+  {{- end }}
+  {{- if has $w.type (list "job" "cronjob") }}
+  {{- $job := merge (dict "template" ($pod | fromYaml)) ($w.job | default dict) }}
+  {{- if eq $w.type "cronjob" }}
+  jobTemplate:
+    spec:
+      {{- toYaml $job | nindent 6 }}
+  {{- else }}
+  {{- toYaml $job | nindent 2 }}
+  {{- end }}
+  {{- else }}
+  selector:
+    matchLabels:
+      {{- $selector | nindent 6 }}
+  template:
+    {{- $pod | nindent 4 }}
+  {{- end }}
+  {{- if eq $w.type "statefulset" }}
+  {{- with $w.volumeClaimTemplates }}
+  volumeClaimTemplates:
+    {{- range $vol, $p := . }}
+    {{- $p = mustMergeOverwrite (deepCopy $.Values.defaults.persistence) (deepCopy $p) }}
+    - metadata:
+        name: {{ $vol }}
+      spec:
+        accessModes: {{ $p.accessModes | default (list $p.accessMode) | toJson }}
+        {{- with $p.storageClass }}
+        storageClassName: {{ . }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ required (printf "workloads.%s.volumeClaimTemplates.%s.size is required" $key $vol) $p.size }}
+    {{- end }}
+  {{- end }}
+  {{- end }}
+{{- end }}
+{{- end }}

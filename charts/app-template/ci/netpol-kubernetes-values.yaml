@@ -1,0 +1,41 @@
+networkPolicy:
+  type: both
+  gatewayPeers:
+    - namespaceSelector:
+        matchLabels: {kubernetes.io/metadata.name: gateway}
+workloads:
+  api:
+    containers:
+      api:
+        image: {repository: ghcr.io/example/api, tag: "1.0.0"}
+        ports: {http: 8080}
+    services:
+      api:
+        ports: {http: 80}
+    networkPolicy:
+      ingress:
+        - gateway
+        - {workload: worker, port: http}
+        - {namespace: other}
+        - world
+      egress:
+        - {datastore: db}
+        - {cidr: 10.0.0.0/8, port: 443}
+        - {datastore: ext}
+  worker:
+    type: statefulset
+    containers:
+      worker:
+        image: {repository: ghcr.io/example/api, tag: "1.0.0"}
+    networkPolicy:
+      egress:
+        - {workload: api, port: http}
+        - {datastore: db}
+datastores:
+  db:
+    engine: postgres
+    type: cnpg
+  ext:
+    engine: redis
+    type: external
+    host: 10.1.2.3

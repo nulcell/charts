@@ -1,0 +1,4 @@
+[tools]
+helm = "3.20.1"
+"aqua:helm/chart-testing" = "3.14.0"
+kubeconform = "0.8.0"

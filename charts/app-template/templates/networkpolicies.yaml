@@ -1,0 +1,40 @@
+{{- $np := .Values.networkPolicy }}
+{{- if $np.enabled }}
+{{- if not (has $np.type (list "cilium" "kubernetes" "both")) }}{{ fail (printf "networkPolicy.type must be cilium, kubernetes or both, got %q" $np.type) }}{{ end }}
+{{- $workloads := include "at.workloads" . | fromYaml }}
+{{- $datastores := include "at.datastores" . | fromYaml }}
+{{- $clients := dict }}
+{{- range $key, $w := $workloads }}
+{{- $wnp := $w.networkPolicy | default dict }}
+{{- range $wnp.egress }}{{ if and (kindIs "map" .) .datastore }}{{ $_ := set $clients .datastore (append (get $clients .datastore | default list) $key) }}{{ end }}{{ end }}
+{{- if ne $wnp.enabled false }}
+{{- include "at.np.policy" (dict "ctx" $ "name" (include "at.resourceName" (list $ $key)) "component" $key
+  "selector" (include "at.selectorLabels" (dict "ctx" $ "component" $key) | fromYaml)
+  "ingress" (include "at.np.peers" (dict "ctx" $ "workloads" $workloads "datastores" $datastores "key" $key "dir" "ingress") | fromYamlArray)
+  "egress" (include "at.np.peers" (dict "ctx" $ "workloads" $workloads "datastores" $datastores "key" $key "dir" "egress") | fromYamlArray)
+  "raw" $wnp.raw) }}
+{{- end }}
+{{- end }}
+{{- /* Datastores accept only the workloads that list them, plus their operator. */}}
+{{- range $key, $d := $datastores }}
+{{- if $d.selector }}
+{{- $ingress := list }}
+{{- $egress := list }}
+{{- $port := list (dict "port" $d.port "protocol" "TCP") }}
+{{- range get $clients $key | default list }}
+{{- $ingress = append $ingress (dict "selector" (include "at.selectorLabels" (dict "ctx" $ "component" .) | fromYaml) "ports" $port) }}
+{{- end }}
+{{- if eq $d.type "cnpg" }}
+{{- $self := dict "selector" $d.selector "ports" $port }}
+{{- $ingress = concat $ingress (list $self (dict "namespace" $np.operators.cnpg "ports" (list (dict "port" 8000 "protocol" "TCP")))) }}
+{{- if (get $.Values.datastores $key).monitoring }}
+{{- $ingress = append $ingress (dict "namespace" $np.prometheus.namespace "podLabels" $np.prometheus.podLabels "ports" (list (dict "port" 9187 "protocol" "TCP"))) }}
+{{- end }}
+{{- $egress = list $self }}
+{{- else if eq $d.type "operator" }}
+{{- $ingress = append $ingress (dict "namespace" $np.operators.mariadb "ports" $port) }}
+{{- end }}
+{{- include "at.np.policy" (dict "ctx" $ "name" $d.name "component" $key "selector" $d.selector "ingress" $ingress "egress" $egress "apiserver" (eq $d.type "cnpg")) }}
+{{- end }}
+{{- end }}
+{{- end }}

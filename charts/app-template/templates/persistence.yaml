@@ -1,0 +1,17 @@
+{{- range $key, $p := .Values.persistence }}
+{{- $p = mustMergeOverwrite (deepCopy $.Values.defaults.persistence) (deepCopy $p) }}
+{{- if and (ne $p.enabled false) (eq ($p.type | default "pvc") "pvc") }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+{{ include "at.metadata" (dict "ctx" $ "name" (include "at.resourceName" (list $ $key)) "annotations" (merge (deepCopy ($p.annotations | default dict)) (ternary (dict "helm.sh/resource-policy" "keep") dict (default false $p.retain)))) }}
+spec:
+  accessModes: {{ $p.accessModes | default (list $p.accessMode) | toJson }}
+  {{- with $p.storageClass }}
+  storageClassName: {{ . }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ required (printf "persistence.%s.size is required" $key) $p.size }}
+{{- end }}
+{{- end }}
