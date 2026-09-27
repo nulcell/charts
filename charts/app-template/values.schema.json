@@ -1023,6 +1023,12 @@
           "args": {
             "type": "array"
           },
+          "volumes": {
+            "type": "array"
+          },
+          "volumeMounts": {
+            "type": "array"
+          },
           "host": {
             "type": "string"
           },

@@ -21,3 +21,15 @@ tests:
     documentIndex: 1
     asserts:
       - notExists: {path: 'spec.template.spec.containers[0].args'}
+  - it: mounts extra volumes into a standalone datastore
+    set:
+      datastores.db:
+        engine: postgres
+        type: standalone
+        existingSecret: s
+        volumes: [{name: pg-cron, image: {reference: ghcr.io/pglayers/pgx-pg_cron:18, pullPolicy: IfNotPresent}}]
+        volumeMounts: [{name: pg-cron, mountPath: /extensions/pg_cron, readOnly: true}]
+    documentIndex: 1
+    asserts:
+      - contains: {path: spec.template.spec.volumes, content: {name: pg-cron, image: {reference: ghcr.io/pglayers/pgx-pg_cron:18, pullPolicy: IfNotPresent}}}
+      - contains: {path: 'spec.template.spec.containers[0].volumeMounts', content: {name: pg-cron, mountPath: /extensions/pg_cron, readOnly: true}}

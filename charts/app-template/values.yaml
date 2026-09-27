@@ -192,6 +192,8 @@ datastores: {}
   #   usernameKey: username
   #   passwordKey: password
   #   args: []                  # standalone; redis defaults to valkey-server --save "60 1"
+  #   volumes: []               # standalone: extra pod volumes, raw (e.g. an image volume carrying an extension)
+  #   volumeMounts: []          # standalone: their mounts, raw
   #   host: ""                  # external: one host, or
   #   hosts: []                 #   several (sentinel, cluster, HA)
   #   port: 0                   # engine default; required for engines without one

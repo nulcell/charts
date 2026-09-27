@@ -149,12 +149,18 @@ spec:
             - name: run
               mountPath: /var/run/postgresql
             {{- end }}
+            {{- with $d.volumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
       volumes:
         - name: tmp
           emptyDir: {}
         {{- if $pg }}
         - name: run
           emptyDir: {}
+        {{- end }}
+        {{- with $d.volumes }}
+        {{- toYaml . | nindent 8 }}
         {{- end }}
   volumeClaimTemplates:
     - metadata:
