@@ -7,7 +7,7 @@
 {{- if eq $v.type "cnpg" }}
 {{- $spec := dict "instances" ($d.instances | default 1) "primaryUpdateStrategy" "unsupervised" "bootstrap" (dict "initdb" (dict "database" $db "owner" $owner)) "storage" (dict "size" $storage.size) }}
 {{- with $storage.storageClass }}{{ $_ := set $spec.storage "storageClass" . }}{{ end }}
-{{- with $d.image }}{{ $_ := set $spec "imageName" (printf "%s:%v" .repository .tag) }}{{ end }}
+{{- with ($d.image | default dict).repository }}{{ $_ := set $spec "imageName" (printf "%s:%v" . $d.image.tag) }}{{ end }}
 {{- with $d.resources }}{{ $_ := set $spec "resources" . }}{{ end }}
 {{- if $d.monitoring }}{{ $_ := set $spec "monitoring" (dict "enablePodMonitor" true) }}{{ end }}
 ---
@@ -19,7 +19,7 @@ spec:
 {{- else if eq $v.type "operator" }}
 {{- $spec := dict "database" $db "username" $owner "replicas" ($d.instances | default 1) "rootPasswordSecretKeyRef" (dict "name" (printf "%s-root" $v.name) "key" "password" "generate" true) "passwordSecretKeyRef" (dict "name" (printf "%s-password" $v.name) "key" "password" "generate" true) "storage" (dict "size" $storage.size) }}
 {{- with $storage.storageClass }}{{ $_ := set $spec.storage "storageClassName" . }}{{ end }}
-{{- with $d.image }}{{ $_ := set $spec "image" (printf "%s:%v" .repository .tag) }}{{ end }}
+{{- with ($d.image | default dict).repository }}{{ $_ := set $spec "image" (printf "%s:%v" . $d.image.tag) }}{{ end }}
 {{- with $d.resources }}{{ $_ := set $spec "resources" . }}{{ end }}
 ---
 apiVersion: k8s.mariadb.com/v1alpha1

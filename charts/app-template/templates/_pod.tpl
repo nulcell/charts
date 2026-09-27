@@ -154,7 +154,7 @@ spec:
 {{- define "at.mounts" -}}
 {{- $out := list -}}
 {{- $sources := list -}}
-{{- range $vol, $p := .ctx.Values.persistence -}}
+{{- range $vol, $p := include "at.tplValues" (list .ctx "persistence") | fromYaml -}}
 {{- if ne $p.enabled false -}}
 {{- $sources = append $sources (dict "vol" $vol "global" $p.globalMounts "advanced" (get (get ($p.advancedMounts | default dict) $.key | default dict) $.name)) -}}
 {{- end -}}
@@ -179,7 +179,7 @@ spec:
 {{/* persistence entries mounted anywhere in this workload. */}}
 {{- define "at.mountedPersistence" -}}
 {{- $out := dict -}}
-{{- range $vol, $p := .ctx.Values.persistence -}}
+{{- range $vol, $p := include "at.tplValues" (list .ctx "persistence") | fromYaml -}}
 {{- if and (ne $p.enabled false) (or $p.globalMounts (hasKey ($p.advancedMounts | default dict) $.key)) -}}
 {{- $_ := set $out $vol $p -}}
 {{- end -}}

@@ -1,6 +1,6 @@
 {{- $workloads := include "at.workloads" . | fromYaml }}
 {{- $versions := dict "HTTPRoute" "v1" "GRPCRoute" "v1" "TCPRoute" "v1alpha2" "UDPRoute" "v1alpha2" "TLSRoute" "v1alpha2" }}
-{{- range $key, $r := .Values.routes }}
+{{- range $key, $r := include "at.tplValues" (list . "routes") | fromYaml }}
 {{- if ne $r.enabled false }}
 {{- $kind := $r.kind | default "HTTPRoute" }}
 {{- if not (hasKey $versions $kind) }}{{ fail (printf "routes.%s.kind must be HTTPRoute, GRPCRoute, TCPRoute, UDPRoute or TLSRoute, got %q" $key $kind) }}{{ end }}

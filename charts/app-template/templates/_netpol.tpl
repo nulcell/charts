@@ -27,12 +27,13 @@ Usage: include "at.np.peers" (dict "ctx" $ "workloads" w "datastores" d "key" ke
 {{- $_ := set $peer "podLabels" $ctx.Values.networkPolicy.prometheus.podLabels -}}
 {{- else if $e.workload -}}
 {{- $target := get $.workloads $e.workload -}}
-{{- if not $target }}{{ fail (printf "%s: unknown workload %q" $ref $e.workload) }}{{ end -}}
+{{- /* A disabled peer isn't running, so there is nothing to allow; only an unknown one is an error. */ -}}
+{{- if not $target }}{{ if hasKey $ctx.Values.workloads $e.workload }}{{ continue }}{{ end }}{{ fail (printf "%s: unknown workload %q" $ref $e.workload) }}{{ end -}}
 {{- $_ := set $peer "selector" (include "at.selectorLabels" (dict "ctx" $ctx "component" $e.workload) | fromYaml) -}}
 {{- if eq $.dir "egress" }}{{ $portOn = $target }}{{ end -}}
 {{- else if $e.datastore -}}
 {{- $d := get $.datastores $e.datastore -}}
-{{- if not $d }}{{ fail (printf "%s: unknown datastore %q" $ref $e.datastore) }}{{ end -}}
+{{- if not $d }}{{ if hasKey $ctx.Values.datastores $e.datastore }}{{ continue }}{{ end }}{{ fail (printf "%s: unknown datastore %q" $ref $e.datastore) }}{{ end -}}
 {{- $ports := list (dict "port" $d.port "protocol" "TCP") -}}
 {{- if $d.selector -}}
 {{- $_ := set $peer "selector" $d.selector -}}

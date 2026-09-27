@@ -2,9 +2,13 @@
 Datastores as {key: {engine, type, name, host, port, selector, peers}}. Chart-managed ones
 have a selector; external ones have peers, derived from their hosts unless given.
 */}}
-{{/* datastores values with every string tpl-rendered. */}}
+{{/* A top-level values map with every string tpl-rendered. Usage: include "at.tplValues" (list $ "persistence") */}}
+{{- define "at.tplValues" -}}
+{{- tpl (toYaml (get (index . 0).Values (index . 1))) (index . 0) -}}
+{{- end }}
+
 {{- define "at.datastoreValues" -}}
-{{- tpl (toYaml .Values.datastores) . -}}
+{{- include "at.tplValues" (list . "datastores") -}}
 {{- end }}
 
 {{- define "at.datastores" -}}

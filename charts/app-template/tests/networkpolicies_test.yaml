@@ -47,3 +47,15 @@ tests:
       datastores.ext: {engine: mongodb, type: external, host: mongo}
     asserts:
       - failedTemplate: {errorMessage: 'datastores.ext.port is required for engine "mongodb"'}
+  - it: skips refs to disabled peers but still fails on unknown ones
+    set:
+      workloads.mail: {enabled: false, containers: {mail: {image: {repository: x}}}}
+      workloads.api.networkPolicy.egress: [{workload: mail}, {datastore: db}]
+    documentIndex: 0
+    asserts:
+      - lengthEqual: {path: spec.egress, count: 2}
+  - it: fails on an unknown peer
+    set:
+      workloads.api.networkPolicy.egress: [{workload: nope}]
+    asserts:
+      - failedTemplate: {errorMessage: 'workloads.api.networkPolicy.egress[0]: unknown workload "nope"'}

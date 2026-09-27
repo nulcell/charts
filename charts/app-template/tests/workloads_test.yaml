@@ -76,3 +76,9 @@ tests:
     asserts:
       - equal: {path: metadata.name, value: portfolio-blue}
       - equal: {path: 'spec.template.spec.containers[0].args[0]', value: --peer=portfolio}
+  - it: tpl-renders persistence, e.g. a release-named secret volume
+    set:
+      persistence.key: {type: secret, name: '{{ .Release.Name }}-keys', advancedMounts: {a: {a: [{path: /run/secrets}]}}}
+      workloads.a.containers.a.image.repository: x
+    asserts:
+      - equal: {path: 'spec.template.spec.volumes[0].secret.secretName', value: portfolio-keys}

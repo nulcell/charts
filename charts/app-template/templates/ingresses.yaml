@@ -1,5 +1,5 @@
 {{- $workloads := include "at.workloads" . | fromYaml }}
-{{- range $key, $ing := .Values.ingresses }}
+{{- range $key, $ing := include "at.tplValues" (list . "ingresses") | fromYaml }}
 {{- if ne $ing.enabled false }}
 ---
 apiVersion: networking.k8s.io/v1

@@ -1,7 +1,7 @@
 # Every map below is keyed by a name you choose; that name becomes part of the object name
 # (<fullname>-<key>, or just <fullname> when the key equals it). Maps ship empty - the
 # commented entry under each shows every supported field.
-# Strings under workloads and datastores are tpl-rendered ("{{ .Release.Name }}-db-rw",
+# Strings under workloads, datastores, persistence, routes and ingresses are tpl-rendered ("{{ .Release.Name }}-db-rw",
 # "{{ .Values.global.x }}"); write a literal "{{" as {{ "{{" }}. Results stay strings.
 
 nameOverride: ""      # app.kubernetes.io/name; defaults to the release name
@@ -114,7 +114,8 @@ workloads: {}
   #       - gateway             # Gateway API / ingress traffic to this workload's service ports
   #       - prometheus          # networkPolicy.prometheus peer
   #       - world
-  #       - {workload: worker, port: http}   # port: a name or number on this workload; omit for any
+  #       - {workload: worker, port: http}   # port: a name or number on this workload; omit for any.
+  #                                          # A disabled workload/datastore is skipped; an unknown one fails.
   #       - {namespace: monitoring, podLabels: {}, port: http}
   #       - {cidr: 10.0.0.0/8, port: 8080}
   #     egress:
@@ -183,7 +184,7 @@ datastores: {}
   #   database: ""              # postgres/mariadb; defaults to the fullname
   #   owner: ""                 # postgres/mariadb user; defaults to the fullname
   #   instances: 1              # cnpg/operator
-  #   image: {repository: "", tag: ""}  # standalone: postgres:18 / valkey/valkey:8; cnpg: imageName
+  #   image: {repository: "", tag: ""}  # standalone: postgres:18 / valkey/valkey:8; cnpg: imageName (empty repository = unset)
   #   storage: {size: 5Gi, storageClass: "", accessMode: ReadWriteOnce}
   #   resources: {}
   #   monitoring: false         # cnpg PodMonitor + prometheus ingress on 9187

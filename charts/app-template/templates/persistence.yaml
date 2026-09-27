@@ -1,4 +1,4 @@
-{{- range $key, $p := .Values.persistence }}
+{{- range $key, $p := include "at.tplValues" (list . "persistence") | fromYaml }}
 {{- $p = mustMergeOverwrite (deepCopy $.Values.defaults.persistence) (deepCopy $p) }}
 {{- if and (ne $p.enabled false) (eq ($p.type | default "pvc") "pvc") }}
 ---
