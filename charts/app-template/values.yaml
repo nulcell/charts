@@ -76,7 +76,7 @@ workloads: {}
   #         - configMap: api-config
   #       ports:
   #         http: 8080          # or {port: 8080, protocol: UDP}
-  #       probes:               # raw Kubernetes probes; omit or {} for none
+  #       probes:               # raw Kubernetes probes; each replaces its default whole, {} disables it
   #         startup: {}
   #         liveness: {httpGet: {path: /livez, port: http}}
   #         readiness: {httpGet: {path: /readyz, port: http}}

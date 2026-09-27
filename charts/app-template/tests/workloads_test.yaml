@@ -56,3 +56,16 @@ tests:
       workloads.a: {name: legacy, containers: {a: {image: {repository: x}}}}
     asserts:
       - equal: {path: metadata.name, value: legacy}
+  - it: replaces default probes whole and disables them with {}
+    set:
+      defaults.container.probes:
+        liveness: {tcpSocket: {port: web}}
+        readiness: {httpGet: {path: /ping, port: web}}
+      workloads.a.containers.a:
+        image: {repository: x}
+        probes:
+          liveness: {exec: {command: [true]}}
+          readiness: {}
+    asserts:
+      - equal: {path: 'spec.template.spec.containers[0].livenessProbe', value: {exec: {command: [true]}}}
+      - notExists: {path: 'spec.template.spec.containers[0].readinessProbe'}

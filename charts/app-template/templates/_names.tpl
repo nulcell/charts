@@ -78,7 +78,12 @@ through this so references resolve against the same view.
 {{- range $field := list "containers" "initContainers" -}}
 {{- $merged := dict -}}
 {{- range $name, $c := (get $w $field | default dict) -}}
-{{- $_ := set $merged $name (mustMergeOverwrite (deepCopy $.Values.defaults.container) (deepCopy $c)) -}}
+{{- $m := mustMergeOverwrite (deepCopy $.Values.defaults.container) (deepCopy $c) -}}
+{{- /* A probe replaces its default whole: handlers are exclusive, and {} must disable it. */ -}}
+{{- $probes := deepCopy ($.Values.defaults.container.probes | default dict) -}}
+{{- range $kind, $p := ($c.probes | default dict) }}{{ $_ := set $probes $kind $p }}{{ end -}}
+{{- $_ := set $m "probes" $probes -}}
+{{- $_ := set $merged $name $m -}}
 {{- end -}}
 {{- $_ := set $w $field $merged -}}
 {{- end -}}
