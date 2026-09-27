@@ -54,7 +54,12 @@ datastores:
   Everything else is listed by name (`gateway`, `workload`, `datastore`, `namespace`, `fqdn`,
   `cidr`, `world`, `prometheus`). Listing a datastore in egress also opens that datastore's
   ingress. `type: kubernetes` cannot express `fqdn`, and needs `gatewayPeers` for `gateway`.
-- **Datastores**: nothing injects connection env. Reference the documented names from env
+- **Datastores**: any mix of engines and instances. `cnpg`/`standalone`/`operator` are
+  chart-managed; `external` takes any `engine` (mysql, mongodb, ...) with `host` or `hosts`.
+  Egress peers derive per host - IP to `/32`, bare name to this namespace, `x.ns.svc` to
+  namespace `ns`, else FQDN - or set `peers` explicitly. In-cluster hosts never use FQDN
+  rules: Cilium's socket LB rewrites Service traffic to pod IPs. A shared in-cluster DB's
+  own policy must still admit this app. Nothing injects connection env. Reference the documented names from env
   values, which are tpl-rendered: `"{{ .Release.Name }}-db-rw"`, secret `"{{ .Release.Name }}-db-app"`.
 - **Rollouts**: pods carry a checksum of every chart-owned ConfigMap/Secret they reference.
   ExternalSecret-backed secrets live in the cluster, so changes there need a manual restart.

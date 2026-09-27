@@ -32,3 +32,18 @@ tests:
     documentIndex: 0
     asserts:
       - equal: {path: 'spec.ingress[0].fromEndpoints[0].matchExpressions[0].operator', value: DoesNotExist}
+  - it: derives egress peers for external datastores per host
+    set:
+      datastores.ext: {engine: mysql, type: external, hosts: [10.0.0.5, legacy, pg-rw.databases.svc]}
+      workloads.api.networkPolicy.egress: [{datastore: ext}]
+    documentIndex: 0
+    asserts:
+      - equal: {path: 'spec.egress[1].toCIDR', value: [10.0.0.5/32]}
+      - equal: {path: 'spec.egress[2].toEndpoints[0].matchLabels["k8s:io.kubernetes.pod.namespace"]', value: NAMESPACE}
+      - equal: {path: 'spec.egress[3].toEndpoints[0].matchLabels["k8s:io.kubernetes.pod.namespace"]', value: databases}
+      - equal: {path: 'spec.egress[3].toPorts[0].ports[0].port', value: "3306"}
+  - it: requires a port for engines without a default
+    set:
+      datastores.ext: {engine: mongodb, type: external, host: mongo}
+    asserts:
+      - failedTemplate: {errorMessage: 'datastores.ext.port is required for engine "mongodb"'}

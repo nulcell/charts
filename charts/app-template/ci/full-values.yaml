@@ -50,6 +50,9 @@ workloads:
       egress:
         - {datastore: db}
         - {datastore: cache}
+        - {datastore: sentinel}
+        - {datastore: mongo}
+        - {datastore: ext}
         - {fqdn: "*.github.com", port: 443}
   worker:
     type: statefulset
@@ -146,6 +149,17 @@ datastores:
     engine: postgres
     type: external
     host: db.example.com
+  sentinel:
+    engine: redis
+    type: external
+    hosts: [10.0.0.11, 10.0.0.12, redis.cache.svc]
+    port: 26379
+  mongo:
+    engine: mongodb
+    type: external
+    host: mongo.internal
+    port: 27017
+    peers: [{namespace: mongo, podLabels: {app: mongo}}]
 serviceAccounts:
   default:
     rules:

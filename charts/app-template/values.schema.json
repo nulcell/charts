@@ -942,11 +942,7 @@
             "type": "boolean"
           },
           "engine": {
-            "enum": [
-              "postgres",
-              "redis",
-              "mariadb"
-            ]
+            "type": "string"
           },
           "type": {
             "enum": [
@@ -1015,8 +1011,35 @@
           "host": {
             "type": "string"
           },
+          "hosts": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
           "port": {
             "type": "integer"
+          },
+          "peers": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "fqdn": {
+                  "type": "string"
+                },
+                "cidr": {
+                  "type": "string"
+                },
+                "namespace": {
+                  "type": "string"
+                },
+                "podLabels": {
+                  "type": "object"
+                }
+              }
+            }
           },
           "cluster": {
             "type": "object"

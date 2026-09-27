@@ -22,6 +22,8 @@ workloads:
         - {datastore: db}
         - {cidr: 10.0.0.0/8, port: 443}
         - {datastore: ext}
+        - {datastore: shared}
+        - {datastore: sibling}
   worker:
     type: statefulset
     containers:
@@ -39,3 +41,11 @@ datastores:
     engine: redis
     type: external
     host: 10.1.2.3
+  shared:
+    engine: postgres
+    type: external
+    host: pg-rw.databases.svc.cluster.local
+  sibling:
+    engine: mysql
+    type: external
+    host: legacy-mysql

@@ -33,10 +33,16 @@ Usage: include "at.np.peers" (dict "ctx" $ "workloads" w "datastores" d "key" ke
 {{- else if $e.datastore -}}
 {{- $d := get $.datastores $e.datastore -}}
 {{- if not $d }}{{ fail (printf "%s: unknown datastore %q" $ref $e.datastore) }}{{ end -}}
-{{- if $d.selector }}{{ $_ := set $peer "selector" $d.selector }}
-{{- else if regexMatch "^[0-9.]+$" $d.host }}{{ $_ := set $peer "cidr" (printf "%s/32" $d.host) }}
-{{- else }}{{ $_ := set $peer "fqdn" $d.host }}{{ end -}}
-{{- $_ := set $peer "ports" (list (dict "port" $d.port "protocol" "TCP")) -}}
+{{- $ports := list (dict "port" $d.port "protocol" "TCP") -}}
+{{- if $d.selector -}}
+{{- $_ := set $peer "selector" $d.selector -}}
+{{- $_ := set $peer "ports" $ports -}}
+{{- else -}}
+{{- /* An external datastore can have several peers; all but the last are appended here. */ -}}
+{{- $peers := $d.peers -}}
+{{- range initial $peers }}{{ $out = append $out (merge (deepCopy .) (dict "ports" $ports)) }}{{ end -}}
+{{- $peer = merge (deepCopy (last $peers)) (dict "ports" $ports) -}}
+{{- end -}}
 {{- else if $e.namespace -}}
 {{- $_ := set $peer "namespace" $e.namespace -}}
 {{- $_ := set $peer "podLabels" ($e.podLabels | default dict) -}}

@@ -171,7 +171,7 @@ ingresses: {}
 
 datastores: {}
   # db:
-  #   engine: postgres          # postgres|redis|mariadb
+  #   engine: postgres          # postgres|redis|mariadb; any name (mysql, mongodb, ...) when external
   #   type: cnpg                # postgres: cnpg|standalone|external; redis: standalone|external; mariadb: operator|external
   #   database: ""              # postgres/mariadb; defaults to the fullname
   #   owner: ""                 # postgres/mariadb user; defaults to the fullname
@@ -184,8 +184,11 @@ datastores: {}
   #   usernameKey: username
   #   passwordKey: password
   #   args: []                  # standalone redis; default valkey-server --save "60 1"
-  #   host: ""                  # external
-  #   port: 0                   # external; engine default otherwise
+  #   host: ""                  # external: one host, or
+  #   hosts: []                 #   several (sentinel, cluster, HA)
+  #   port: 0                   # engine default; required for engines without one
+  #   peers: []                 # external: egress peers, [{fqdn}|{cidr}|{namespace, podLabels}]. Derived per host
+  #                             #   when empty: IP -> /32, bare name -> this namespace, x.ns.svc -> namespace ns, else fqdn
   #   cluster: {}               # cnpg Cluster / MariaDB spec, merged over the derived one
   #
   # Names: cnpg host <fullname>-<key>-rw, secret <fullname>-<key>-app (username, password, uri);

@@ -1,17 +1,19 @@
 {{/*
-Datastores as {key: {engine, type, name, host, port, selector}}; selector is empty for
-external ones. Network policies and NOTES read this.
+Datastores as {key: {engine, type, name, host, port, selector, peers}}. Chart-managed ones
+have a selector; external ones have peers, derived from their hosts unless given.
 */}}
 {{- define "at.datastores" -}}
-{{- $ports := dict "postgres" 5432 "redis" 6379 "mariadb" 3306 -}}
+{{- $ports := dict "postgres" 5432 "redis" 6379 "mariadb" 3306 "mysql" 3306 -}}
 {{- $types := dict "postgres" (list "cnpg" "standalone" "external") "redis" (list "standalone" "external") "mariadb" (list "operator" "external") -}}
 {{- $out := dict -}}
 {{- range $key, $d := .Values.datastores -}}
 {{- if ne $d.enabled false -}}
-{{- if not (hasKey $types $d.engine) }}{{ fail (printf "datastores.%s.engine must be postgres, redis or mariadb, got %q" $key $d.engine) }}{{ end -}}
+{{- if ne $d.type "external" -}}
+{{- if not (hasKey $types $d.engine) }}{{ fail (printf "datastores.%s.engine must be postgres, redis or mariadb unless type is external, got %q" $key $d.engine) }}{{ end -}}
 {{- if not (has $d.type (get $types $d.engine)) }}{{ fail (printf "datastores.%s.type for %s must be one of %s, got %q" $key $d.engine (get $types $d.engine | join ", ") $d.type) }}{{ end -}}
+{{- end -}}
 {{- $name := include "at.resourceName" (list $ $key) -}}
-{{- $v := dict "engine" $d.engine "type" $d.type "name" $name "port" ($d.port | default (get $ports $d.engine) | int) "host" $name "selector" dict -}}
+{{- $v := dict "engine" $d.engine "type" $d.type "name" $name "port" (required (printf "datastores.%s.port is required for engine %q" $key $d.engine) ($d.port | default (get $ports $d.engine)) | int) "host" $name "selector" dict -}}
 {{- if eq $d.type "cnpg" -}}
 {{- $_ := set $v "host" (printf "%s-rw" $name) -}}
 {{- $_ := set $v "selector" (dict "cnpg.io/cluster" $name) -}}
@@ -20,7 +22,20 @@ external ones. Network policies and NOTES read this.
 {{- else if eq $d.type "standalone" -}}
 {{- $_ := set $v "selector" (include "at.selectorLabels" (dict "ctx" $ "component" $key) | fromYaml) -}}
 {{- else -}}
-{{- $_ := set $v "host" (required (printf "datastores.%s.host is required for an external datastore" $key) $d.host) -}}
+{{- $hosts := $d.hosts | default (list $d.host | compact) -}}
+{{- if not $hosts }}{{ fail (printf "datastores.%s: host or hosts is required for an external datastore" $key) }}{{ end -}}
+{{- $_ := set $v "host" (join ", " $hosts) -}}
+{{- $peers := $d.peers | default list -}}
+{{- if not $peers -}}
+{{- /* Cilium's socket LB rewrites in-cluster Service traffic to pod IPs, so toFQDNs can't match it. */ -}}
+{{- range $hosts -}}
+{{- if regexMatch "^[0-9.]+$" . }}{{ $peers = append $peers (dict "cidr" (printf "%s/32" .)) }}
+{{- else if not (contains "." .) }}{{ $peers = append $peers (dict "namespace" $.Release.Namespace) }}
+{{- else if regexMatch "^[^.]+\\.[^.]+\\.svc(\\.cluster\\.local)?$" . }}{{ $peers = append $peers (dict "namespace" (index (splitList "." .) 1)) }}
+{{- else }}{{ $peers = append $peers (dict "fqdn" .) }}{{ end -}}
+{{- end -}}
+{{- end -}}
+{{- $_ := set $v "peers" $peers -}}
 {{- end -}}
 {{- $_ := set $out $key $v -}}
 {{- end -}}
