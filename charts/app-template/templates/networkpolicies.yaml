@@ -8,7 +8,7 @@
 {{- $wnp := $w.networkPolicy | default dict }}
 {{- range $wnp.egress }}{{ if and (kindIs "map" .) .datastore }}{{ $_ := set $clients .datastore (append (get $clients .datastore | default list) $key) }}{{ end }}{{ end }}
 {{- if ne $wnp.enabled false }}
-{{- include "at.np.policy" (dict "ctx" $ "name" (include "at.resourceName" (list $ $key)) "component" $key
+{{- include "at.np.policy" (dict "ctx" $ "name" (include "at.workloadName" (list $ $key)) "component" $key
   "selector" (include "at.selectorLabels" (dict "ctx" $ "component" $key) | fromYaml)
   "ingress" (include "at.np.peers" (dict "ctx" $ "workloads" $workloads "datastores" $datastores "key" $key "dir" "ingress") | fromYamlArray)
   "egress" (include "at.np.peers" (dict "ctx" $ "workloads" $workloads "datastores" $datastores "key" $key "dir" "egress") | fromYamlArray)

@@ -4,7 +4,7 @@
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
-{{ include "at.metadata" (dict "ctx" $ "name" (include "at.resourceName" (list $ $key)) "annotations" $ing.annotations) }}
+{{ include "at.metadata" (dict "ctx" $ "name" ($ing.name | default (include "at.resourceName" (list $ $key))) "annotations" $ing.annotations) }}
 spec:
   {{- with $ing.className }}
   ingressClassName: {{ . }}

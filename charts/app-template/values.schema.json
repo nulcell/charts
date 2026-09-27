@@ -173,6 +173,9 @@
           "enabled": {
             "type": "boolean"
           },
+          "name": {
+            "type": "string"
+          },
           "type": {
             "enum": [
               "deployment",
@@ -371,6 +374,9 @@
               "properties": {
                 "enabled": {
                   "type": "boolean"
+                },
+                "name": {
+                  "type": "string"
                 },
                 "type": {
                   "enum": [
@@ -813,6 +819,9 @@
           "enabled": {
             "type": "boolean"
           },
+          "name": {
+            "type": "string"
+          },
           "kind": {
             "enum": [
               "HTTPRoute",
@@ -881,6 +890,9 @@
           "enabled": {
             "type": "boolean"
           },
+          "name": {
+            "type": "string"
+          },
           "className": {
             "type": "string"
           },
@@ -940,6 +952,9 @@
         "properties": {
           "enabled": {
             "type": "boolean"
+          },
+          "name": {
+            "type": "string"
           },
           "engine": {
             "type": "string"

@@ -51,6 +51,7 @@ workloads: {}
   # api:
   #   enabled: true
   #   type: deployment        # deployment|statefulset|daemonset|pod|job|cronjob
+  #   name: ""                # object name; defaults to <fullname>-<key> (use to adopt existing objects)
   #   replicas: 1             # deployment/statefulset only; ignored while autoscaling
   #   schedule: "0 * * * *"   # cronjob only
   #   annotations: {}         # controller metadata
@@ -85,6 +86,7 @@ workloads: {}
   #   initContainers: {}      # same shape; run in key order, restartPolicy: Always makes a native sidecar
   #   services:
   #     api:                    # keyed like the workload -> named like it; otherwise <workload>-<key>
+  #       name: ""              # overrides the above
   #       type: ClusterIP
   #       ports:
   #         http: 80            # targetPort defaults to the port's name; or {port, targetPort, protocol, nodePort}
@@ -148,6 +150,7 @@ routes: {}
   # api:
   #   enabled: true
   #   kind: HTTPRoute           # HTTPRoute|GRPCRoute|TCPRoute|UDPRoute|TLSRoute
+  #   name: ""                  # defaults to <fullname>-<key>
   #   apiVersion: ""            # override, e.g. TLSRoute gateway.networking.k8s.io/v1alpha3
   #   annotations: {}
   #   hostnames: [api.example.com]  # tpl-rendered
@@ -161,6 +164,7 @@ routes: {}
 ingresses: {}
   # api:
   #   enabled: true
+  #   name: ""                  # defaults to <fullname>-<key>
   #   className: ""
   #   annotations: {}
   #   hosts:
@@ -172,6 +176,7 @@ ingresses: {}
 datastores: {}
   # db:
   #   engine: postgres          # postgres|redis|mariadb; any name (mysql, mongodb, ...) when external
+  #   name: ""                  # defaults to <fullname>-<key>; set to adopt an existing cluster
   #   type: cnpg                # postgres: cnpg|standalone|external; redis: standalone|external; mariadb: operator|external
   #   database: ""              # postgres/mariadb; defaults to the fullname
   #   owner: ""                 # postgres/mariadb user; defaults to the fullname

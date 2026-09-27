@@ -1,7 +1,7 @@
 {{- $workloads := include "at.workloads" . | fromYaml }}
 {{ .Release.Name }} in {{ .Release.Namespace }}:
 {{- range $key, $w := $workloads }}
-  {{ $w.type }} {{ include "at.resourceName" (list $ $key) }}
+  {{ $w.type }} {{ include "at.workloadName" (list $ $key) }}
   {{- range $svc, $_ := $w.services }}
     service {{ include "at.serviceName" (list $ $key $svc) }}
   {{- end }}

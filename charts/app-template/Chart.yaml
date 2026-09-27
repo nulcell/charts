@@ -2,7 +2,7 @@ apiVersion: v2
 name: app-template
 description: Compose-style chart - workloads, services, routes, datastores and policies from values alone
 type: application
-version: 0.1.1
+version: 0.2.0
 home: https://github.com/nulcell/charts
 sources:
   - https://github.com/nulcell/charts

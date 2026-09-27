@@ -13,10 +13,19 @@
 {{- if eq $key $full }}{{ $full }}{{ else }}{{ printf "%s-%s" $full $key | trunc 63 | trimSuffix "-" }}{{ end -}}
 {{- end }}
 
-{{/* A service keyed like its workload takes the workload's name. Usage: (list $ workload service) */}}
+{{/* A workload's `name`, else its resourceName. Usage: (list $ key) */}}
+{{- define "at.workloadName" -}}
+{{- (get ((index . 0).Values.workloads) (index . 1) | default dict).name | default (include "at.resourceName" .) -}}
+{{- end }}
+
+{{/* A service's `name`; else, keyed like its workload, the workload's name; else <workload>-<key>. Usage: (list $ workload service) */}}
 {{- define "at.serviceName" -}}
-{{- $wl := include "at.resourceName" (list (index . 0) (index . 1)) -}}
-{{- if eq (index . 1) (index . 2) }}{{ $wl }}{{ else }}{{ printf "%s-%s" $wl (index . 2) | trunc 63 | trimSuffix "-" }}{{ end -}}
+{{- $ctx := index . 0 -}}
+{{- $wl := include "at.workloadName" (list $ctx (index . 1)) -}}
+{{- $svc := get ((get $ctx.Values.workloads (index . 1) | default dict).services | default dict) (index . 2) | default dict -}}
+{{- if $svc.name }}{{ $svc.name }}
+{{- else if eq (index . 1) (index . 2) }}{{ $wl }}
+{{- else }}{{ printf "%s-%s" $wl (index . 2) | trunc 63 | trimSuffix "-" }}{{ end -}}
 {{- end }}
 
 {{/* Usage: include "at.selectorLabels" (dict "ctx" $ "component" key) */}}
@@ -111,7 +120,7 @@ taken as an existing object's name. Usage: (list $ "configMaps" name)
 {{- $port := .port -}}
 {{- if kindIs "string" $port -}}
 {{- $found := "" -}}
-{{- range $c := .w.containers -}}
+{{- range $c := concat (values (.w.containers | default dict)) (values (.w.initContainers | default dict)) -}}
 {{- range $name, $p := ($c.ports | default dict) -}}
 {{- if eq $name $port }}{{ $found = include "at.portNumber" $p }}{{ end -}}
 {{- end -}}

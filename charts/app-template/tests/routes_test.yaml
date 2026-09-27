@@ -19,3 +19,12 @@ tests:
       routes.api.rules: [{backends: [{workload: api, service: nope, port: 80}]}]
     asserts:
       - failedTemplate: {errorMessage: 'routes.api.rules[0]: workload "api" has no service "nope"'}
+  - it: follows workload and service name overrides
+    set:
+      workloads.api.name: legacy
+      workloads.api.services.admin.name: legacy-admin
+      routes.api: {name: legacy-route, rules: [{backends: [{workload: api, service: api, port: http}, {workload: api, service: admin, port: admin}]}]}
+    asserts:
+      - equal: {path: metadata.name, value: legacy-route}
+      - equal: {path: 'spec.rules[0].backendRefs[0].name', value: legacy}
+      - equal: {path: 'spec.rules[0].backendRefs[1].name', value: legacy-admin}

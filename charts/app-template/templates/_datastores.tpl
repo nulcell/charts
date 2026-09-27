@@ -12,7 +12,7 @@ have a selector; external ones have peers, derived from their hosts unless given
 {{- if not (hasKey $types $d.engine) }}{{ fail (printf "datastores.%s.engine must be postgres, redis or mariadb unless type is external, got %q" $key $d.engine) }}{{ end -}}
 {{- if not (has $d.type (get $types $d.engine)) }}{{ fail (printf "datastores.%s.type for %s must be one of %s, got %q" $key $d.engine (get $types $d.engine | join ", ") $d.type) }}{{ end -}}
 {{- end -}}
-{{- $name := include "at.resourceName" (list $ $key) -}}
+{{- $name := $d.name | default (include "at.resourceName" (list $ $key)) -}}
 {{- $v := dict "engine" $d.engine "type" $d.type "name" $name "port" (required (printf "datastores.%s.port is required for engine %q" $key $d.engine) ($d.port | default (get $ports $d.engine)) | int) "host" $name "selector" dict -}}
 {{- if eq $d.type "cnpg" -}}
 {{- $_ := set $v "host" (printf "%s-rw" $name) -}}

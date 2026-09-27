@@ -7,7 +7,7 @@
 ---
 apiVersion: {{ $r.apiVersion | default (printf "gateway.networking.k8s.io/%s" (get $versions $kind)) }}
 kind: {{ $kind }}
-{{ include "at.metadata" (dict "ctx" $ "name" (include "at.resourceName" (list $ $key)) "annotations" $r.annotations) }}
+{{ include "at.metadata" (dict "ctx" $ "name" ($r.name | default (include "at.resourceName" (list $ $key))) "annotations" $r.annotations) }}
 spec:
   parentRefs:
     {{- toYaml (required (printf "routes.%s: set parentRefs or defaults.route.parentRefs" $key) ($r.parentRefs | default $.Values.defaults.route.parentRefs)) | nindent 4 }}

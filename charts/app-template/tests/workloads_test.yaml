@@ -51,3 +51,8 @@ tests:
       workloads.a: {type: daemonset, replicas: 2, containers: {a: {image: {repository: x}}}}
     asserts:
       - failedTemplate: {errorMessage: workloads.a.replicas only applies to deployment/statefulset}
+  - it: honours a name override
+    set:
+      workloads.a: {name: legacy, containers: {a: {image: {repository: x}}}}
+    asserts:
+      - equal: {path: metadata.name, value: legacy}

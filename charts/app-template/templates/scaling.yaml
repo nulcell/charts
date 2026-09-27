@@ -1,6 +1,6 @@
 {{- $kinds := dict "deployment" "Deployment" "statefulset" "StatefulSet" "daemonset" "DaemonSet" }}
 {{- range $key, $w := include "at.workloads" . | fromYaml }}
-{{- $name := include "at.resourceName" (list $ $key) }}
+{{- $name := include "at.workloadName" (list $ $key) }}
 {{- $target := dict "apiVersion" "apps/v1" "kind" (get $kinds $w.type) "name" $name }}
 {{- with $w.autoscaling }}
 {{- if .enabled }}

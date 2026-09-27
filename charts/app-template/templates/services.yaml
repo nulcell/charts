@@ -21,7 +21,7 @@ spec:
       nodePort: {{ . }}
       {{- end }}
     {{- end }}
-  {{- with omit $svc "enabled" "type" "ports" "annotations" "labels" "serviceMonitor" }}
+  {{- with omit $svc "enabled" "name" "type" "ports" "annotations" "labels" "serviceMonitor" }}
   {{- toYaml . | nindent 2 }}
   {{- end }}
 {{- with $svc.serviceMonitor }}

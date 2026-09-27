@@ -1,7 +1,7 @@
 {{- include "at.validate" . }}
 {{- $kinds := dict "deployment" "Deployment" "statefulset" "StatefulSet" "daemonset" "DaemonSet" "pod" "Pod" "job" "Job" "cronjob" "CronJob" }}
 {{- range $key, $w := include "at.workloads" . | fromYaml }}
-{{- $name := include "at.resourceName" (list $ $key) }}
+{{- $name := include "at.workloadName" (list $ $key) }}
 {{- $selector := include "at.selectorLabels" (dict "ctx" $ "component" $key) }}
 {{- $pod := include "at.pod" (dict "ctx" $ "key" $key "w" $w) }}
 ---
