@@ -33,3 +33,15 @@ tests:
     asserts:
       - contains: {path: spec.template.spec.volumes, content: {name: pg-cron, image: {reference: ghcr.io/pglayers/pgx-pg_cron:18, pullPolicy: IfNotPresent}}}
       - contains: {path: 'spec.template.spec.containers[0].volumeMounts', content: {name: pg-cron, mountPath: /extensions/pg_cron, readOnly: true}}
+  - it: defaults standalone postgres to a fully qualified image
+    set:
+      datastores.db: {engine: postgres, type: standalone, existingSecret: s}
+    documentIndex: 1
+    asserts:
+      - equal: {path: 'spec.template.spec.containers[0].image', value: docker.io/library/postgres:18}
+  - it: defaults standalone redis to a fully qualified image
+    set:
+      datastores.cache: {engine: redis, type: standalone}
+    documentIndex: 1
+    asserts:
+      - equal: {path: 'spec.template.spec.containers[0].image', value: docker.io/valkey/valkey:8}

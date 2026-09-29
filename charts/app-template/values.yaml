@@ -186,7 +186,7 @@ datastores: {}
   #   database: ""              # postgres/mariadb; defaults to the fullname
   #   owner: ""                 # postgres/mariadb user; defaults to the fullname
   #   instances: 1              # cnpg/operator
-  #   image: {repository: "", tag: ""}  # standalone: postgres:18 / valkey/valkey:8; cnpg: imageName (empty repository = unset)
+  #   image: {repository: "", tag: ""}  # standalone: docker.io/library/postgres:18 / docker.io/valkey/valkey:8; cnpg: imageName (empty repository = unset)
   #   storage: {size: 5Gi, storageClass: "", accessMode: ReadWriteOnce}
   #   resources: {}
   #   monitoring: false         # cnpg PodMonitor + prometheus ingress on 9187

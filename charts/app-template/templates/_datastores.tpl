@@ -58,7 +58,7 @@ have a selector; external ones have peers, derived from their hosts unless given
 {{- $d := .d -}}
 {{- $v := .v -}}
 {{- $pg := eq $d.engine "postgres" -}}
-{{- $image := mustMergeOverwrite (ternary (dict "repository" "postgres" "tag" "18") (dict "repository" "valkey/valkey" "tag" "8") $pg) ($d.image | default dict) -}}
+{{- $image := mustMergeOverwrite (ternary (dict "repository" "docker.io/library/postgres" "tag" "18") (dict "repository" "docker.io/valkey/valkey" "tag" "8") $pg) ($d.image | default dict) -}}
 {{- $storage := mustMergeOverwrite (deepCopy $ctx.Values.defaults.persistence) (dict "size" "5Gi") ($d.storage | default dict) -}}
 {{- $selector := include "at.selectorLabels" (dict "ctx" $ctx "component" .key) -}}
 {{- $secret := $d.existingSecret -}}
