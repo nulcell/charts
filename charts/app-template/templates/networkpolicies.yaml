@@ -3,6 +3,7 @@
 {{- if not (has $np.type (list "cilium" "kubernetes" "both")) }}{{ fail (printf "networkPolicy.type must be cilium, kubernetes or both, got %q" $np.type) }}{{ end }}
 {{- $workloads := include "at.workloads" . | fromYaml }}
 {{- $datastores := include "at.datastores" . | fromYaml }}
+{{- $dvalues := include "at.datastoreValues" . | fromYaml }}
 {{- $clients := dict }}
 {{- range $key, $w := $workloads }}
 {{- $wnp := $w.networkPolicy | default dict }}
@@ -33,6 +34,10 @@
 {{- $egress = list $self }}
 {{- else if eq $d.type "operator" }}
 {{- $ingress = append $ingress (dict "namespace" $np.operators.mariadb "ports" $port) }}
+{{- end }}
+{{- $dnp := (get $dvalues $key).networkPolicy | default dict }}
+{{- if $dnp.egress }}
+{{- $egress = concat $egress (include "at.np.peers" (dict "ctx" $ "workloads" $workloads "datastores" $datastores "key" $key "dir" "egress" "self" (dict "networkPolicy" $dnp)) | fromYamlArray) }}
 {{- end }}
 {{- include "at.np.policy" (dict "ctx" $ "name" $d.name "component" $key "selector" $d.selector "ingress" $ingress "egress" $egress "apiserver" (eq $d.type "cnpg")) }}
 {{- end }}

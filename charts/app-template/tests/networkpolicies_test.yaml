@@ -59,3 +59,11 @@ tests:
       workloads.api.networkPolicy.egress: [{workload: nope}]
     asserts:
       - failedTemplate: {errorMessage: 'workloads.api.networkPolicy.egress[0]: unknown workload "nope"'}
+  - it: opens datastore egress to the listed peers
+    set:
+      datastores.db.networkPolicy.egress: [{fqdn: s3.amazonaws.com}, {fqdn: "*.s3.amazonaws.com"}]
+    documentIndex: 1
+    asserts:
+      - lengthEqual: {path: spec.egress, count: 5}
+      - equal: {path: 'spec.egress[3].toFQDNs[0].matchName', value: s3.amazonaws.com}
+      - equal: {path: 'spec.egress[4].toFQDNs[0].matchPattern', value: "*.s3.amazonaws.com"}

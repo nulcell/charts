@@ -970,6 +970,15 @@
               "external"
             ]
           },
+          "networkPolicy": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "egress": {
+                "type": "array"
+              }
+            }
+          },
           "database": {
             "type": "string"
           },

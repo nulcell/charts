@@ -199,6 +199,7 @@ datastores: {}
   #   host: ""                  # external: one host, or
   #   hosts: []                 #   several (sentinel, cluster, HA)
   #   port: 0                   # engine default; required for engines without one
+  #   networkPolicy: {}         # cnpg/operator/standalone: {egress: [peers]}, same peers as a workload, e.g. [{fqdn: s3.amazonaws.com}]
   #   peers: []                 # external: egress peers, [{fqdn}|{cidr}|{namespace, podLabels}]. Derived per host
   #                             #   when empty: IP -> /32, bare name -> this namespace, x.ns.svc -> namespace ns, else fqdn
   #   cluster: {}               # cnpg Cluster / MariaDB spec, merged over the derived one

@@ -1,11 +1,11 @@
 {{/*
 Network-policy entries resolved to peers: {selector, namespace, podLabels, entity, cidr,
 fqdn, ports: [{port, protocol}]}. One shape, rendered for Cilium or Kubernetes below.
-Usage: include "at.np.peers" (dict "ctx" $ "workloads" w "datastores" d "key" key "dir" "ingress|egress")
+Usage: include "at.np.peers" (dict "ctx" $ "workloads" w "datastores" d "key" key "dir" "ingress|egress" ["self" {networkPolicy: ...}])
 */}}
 {{- define "at.np.peers" -}}
 {{- $ctx := .ctx -}}
-{{- $self := get .workloads .key -}}
+{{- $self := .self | default (get .workloads .key) -}}
 {{- $out := list -}}
 {{- range $i, $e := get ($self.networkPolicy | default dict) $.dir | default list -}}
 {{- $ref := printf "workloads.%s.networkPolicy.%s[%d]" $.key $.dir $i -}}
