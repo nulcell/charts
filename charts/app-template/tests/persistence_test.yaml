@@ -1,0 +1,10 @@
+suite: persistence
+templates: [persistence.yaml]
+release: {name: app}
+tests:
+  - it: adds labels and annotations to a pvc
+    set:
+      persistence.data: {size: 1Gi, labels: {backup: daily}, annotations: {note: x}}
+    asserts:
+      - equal: {path: metadata.labels.backup, value: daily}
+      - equal: {path: metadata.annotations.note, value: x}

@@ -135,6 +135,8 @@ persistence: {}
   #   storageClass: ""          # pvc; defaults.persistence
   #   accessMode: ReadWriteOnce # pvc; or accessModes: [...]
   #   retain: false             # pvc: keep on uninstall
+  #   labels: {}                # pvc; e.g. Longhorn recurring-job labels
+  #   annotations: {}           # pvc
   #   existingClaim: ""         # existingClaim
   #   medium: ""                # emptyDir
   #   sizeLimit: ""             # emptyDir

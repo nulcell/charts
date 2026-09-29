@@ -777,6 +777,9 @@
           "retain": {
             "type": "boolean"
           },
+          "labels": {
+            "type": "object"
+          },
           "annotations": {
             "type": "object"
           },
