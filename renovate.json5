@@ -1,4 +1,34 @@
 {
   $schema: "https://docs.renovatebot.com/renovate-schema.json",
   extends: ["config:recommended"],
+  dependencyDashboard: true,
+  dependencyDashboardApproval: false,
+  timezone: "Europe/Amsterdam",
+  prConcurrentLimit: 0,
+  prHourlyLimit: 0,
+  prCreation: "immediate",
+  labels: ["renovate"],
+  semanticCommits: "enabled",
+
+  packageRules: [
+    {
+      matchUpdateTypes: ["major", "minor"],
+      semanticCommitType: "feat",
+    },
+    {
+      matchUpdateTypes: ["patch", "digest"],
+      semanticCommitType: "fix",
+    },
+    {
+      matchManagers: ["github-actions"],
+      groupName: "github actions",
+      semanticCommitScope: "ci",
+    },
+    {
+      matchManagers: ["mise"],
+      matchFileNames: [".mise.toml"],
+      enabled: true,
+    },
+  ],
+  platformAutomerge: false,
 }
