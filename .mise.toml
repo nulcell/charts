@@ -1,4 +1,4 @@
 [tools]
 helm = "4.3.0"
-"aqua:helm/chart-testing" = "3.14.0"
+"aqua:helm/chart-testing" = "3.15.0"
 kubeconform = "0.8.0"
