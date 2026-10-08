@@ -23,6 +23,7 @@
       matchManagers: ["github-actions"],
       groupName: "github actions",
       semanticCommitScope: "ci",
+      enabled: false,
     },
     {
       matchManagers: ["mise"],
