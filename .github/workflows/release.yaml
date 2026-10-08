@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: azure/setup-helm@v4
+      - uses: azure/setup-helm@v5
       - name: Push new chart versions
         env:
           REGISTRY: oci://ghcr.io/${{ github.repository_owner }}/charts
